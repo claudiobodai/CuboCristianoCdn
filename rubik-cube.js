@@ -12,16 +12,22 @@ let previousMousePosition = { x: 0, y: 0 };
 let particleSystem = null;
 let cubelets = [];
 
+//Mobile
+let touchStartX = 0;
+let touchStartY = 0;
+let isTouching = false;
+let touchMoved = false;
+
 // Colori per le facce del cubo di Rubik (Design Thinking phases)
 const COLORS = {
-  U: 0x00B5D8, // Sopra    → EMPATIA (Ciano)
-  D: 0x9C27B0, // Sotto  → TEST (Viola)
-  L: 0xE91E63, // Sinistra  → DEFINIZIONE (Rosa)
-  R: 0xFF6D00, // Destra → PROTOTIPAZIONE (Arancio)
-  F: 0xFFC107, // Fronte → IDEAZIONE (Ambra)
-  B: 0xFF0000, // Retro  → HOME (Rosso)
-  BODY: 0x0b0f18, // Corpo (Nero)
-  EDGE: 0x263046   // Linee dei bordi
+  U: 0x00B5D8, 
+  D: 0x9C27B0, 
+  L: 0xE91E63, 
+  R: 0xFF6D00, 
+  F: 0xFFC107, 
+  B: 0xFF0000, 
+  BODY: 0x0b0f18, 
+  EDGE: 0x263046   
 };
 
 let phaseContents = {};
@@ -95,6 +101,9 @@ function init() {
   window.addEventListener("mousedown", onMouseDown);
   window.addEventListener("mousemove", onMouseMove);
   window.addEventListener("mouseup", onMouseUp);
+  window.addEventListener("touchstart", onTouchStart, { passive: false });
+  window.addEventListener("touchmove", onTouchMove, { passive: false });
+  window.addEventListener("touchend", onTouchEnd);
 
   // Avvia il timer di inattività
   resetInactivityTimer();
@@ -393,6 +402,93 @@ function onMouseUp() {
     isDragging = false;
   }, 50);
 }
+
+function onTouchStart(event) {
+  // Se è un tap sulla card laterale, non interferire
+  if (event.target.closest('.phase-card')) {
+    return;
+  }
+  
+  // Previeni scroll durante drag
+  if (event.touches.length === 1) {
+    event.preventDefault();
+  }
+  
+  resetInactivityTimer();
+  isTouching = true;
+  touchMoved = false;
+  isDragging = false;
+  dragStarted = true;
+  
+  const touch = event.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+  
+  previousMousePosition = {
+    x: touch.clientX,
+    y: touch.clientY,
+  };
+}
+
+function onTouchMove(event) {
+  if (!isTouching || isOpening) return;
+  
+  // Previeni scroll durante drag
+  if (event.touches.length === 1) {
+    event.preventDefault();
+  }
+  
+  resetInactivityTimer();
+  
+  const touch = event.touches[0];
+  const deltaX = touch.clientX - previousMousePosition.x;
+  const deltaY = touch.clientY - previousMousePosition.y;
+
+  // Se si muove più di 5px, è un drag non un tap
+  if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+    touchMoved = true;
+    isDragging = true;
+    
+    // Rotazione più sensibile su mobile
+    world.rotation.y += deltaX * 0.008;
+    world.rotation.x += deltaY * 0.006;
+  }
+
+  previousMousePosition = {
+    x: touch.clientX,
+    y: touch.clientY,
+  };
+}
+
+function onTouchEnd(event) {
+  isTouching = false;
+  dragStarted = false;
+  
+  // Se non si è mosso, è un tap (click)
+  if (!touchMoved && event.changedTouches.length > 0) {
+    const touch = event.changedTouches[0];
+    
+    // Simula un click
+    const clickEvent = new MouseEvent('click', {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      bubbles: true,
+    });
+    
+    // Piccolo delay per distinguere tap da drag
+    setTimeout(() => {
+      if (!isDragging) {
+        onClick(clickEvent);
+      }
+      isDragging = false;
+    }, 50);
+  } else {
+    setTimeout(() => {
+      isDragging = false;
+    }, 50);
+  }
+}
+
 
 // Gestione click sugli sticker
 function onClick(event) {
@@ -715,10 +811,10 @@ async function loadPhasesFromWordPress() {
             }
         });
         
-        console.log('✅ Fasi caricate da WordPress:', Object.keys(phaseContents));
+        console.log('Fasi caricate da WordPress:', Object.keys(phaseContents));
         
     } catch (error) {
-        console.error('❌ Errore caricamento fasi WordPress:', error);
+        console.error('Errore caricamento fasi WordPress:', error);
         useFallbackContent();
     }
 }
