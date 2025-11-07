@@ -79,8 +79,12 @@ function init() {
   renderer.toneMappingExposure = 1.15;
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
+  const container = document.getElementById('three-container');
+  if (container) {
+      container.appendChild(renderer.domElement);
+  } else {
+      console.error('Container #three-container non trovato!');
+  }
   // Luci
   scene.add(new THREE.AmbientLight(0xffffff, 0.35));
   const key = new THREE.DirectionalLight(0xffffff, 1.05);
