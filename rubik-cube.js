@@ -24,28 +24,7 @@ const COLORS = {
   EDGE: 0x263046   // Linee dei bordi
 };
 
-const phaseContents = {
-  0: { 
-    title: "EMPATIZZARE",
-    color: "#00B5D8"
-  },
-  1: {
-    title: "DEFINIRE",
-    color: "#E91E63"
-  },
-  2: {
-    title: "IDEARE",
-    color: "#FFC107"
-  },
-  3: {
-    title: "PROTOTIPARE",
-    color: "#FF6D00"
-  },
-  4: {
-    title: "TESTARE",
-    color: "#9C27B0"
-  }
-};
+let phaseContents = {};
 
 // Variabili per rotazione automatica
 let inactivityTimer = null;
@@ -57,6 +36,8 @@ const cubieSize = 0.96, gap = 0.96, stickerSize = 0.8, stickerLift = 0.01;
 
 init();
 animate();
+loadPhasesFromWordPress();
+
 
 function init() {
   // Scena
@@ -689,6 +670,155 @@ async function playHomeAnimation() {
   }, 200);
 }
 
+async function loadPhasesFromWordPress() {
+    try {
+        const response = await fetch('/wp-json/wp/v2/cube-phases?per_page=6&orderby=meta_value_num&meta_key=_phase_order&order=asc');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const phases = await response.json();
+        
+        if (!phases || phases.length === 0) {
+            console.warn('Nessuna fase trovata, uso fallback');
+            useFallbackContent();
+            return;
+        }
+        
+        // Mappa le fasi in base all'ordine
+        const phaseMap = {
+            1: 'EMPATIA',
+            2: 'DEFINIZIONE',
+            3: 'IDEAZIONE',
+            4: 'PROTOTIPAZIONE',
+            5: 'TEST',
+            6: 'HOME'
+        };
+        
+        phases.forEach(phase => {
+            const order = parseInt(phase.phase_order) || 0;
+            const phaseName = phaseMap[order];
+            
+            if (phaseName) {
+                phaseContents[phaseName] = {
+                    title: phase.title.rendered || phaseName,
+                    color: phase.phase_color || getDefaultColor(phaseName),
+                    content: buildPhaseContent(phase)
+                };
+            }
+        });
+        
+        console.log('✅ Fasi caricate da WordPress:', Object.keys(phaseContents));
+        
+    } catch (error) {
+        console.error('❌ Errore caricamento fasi WordPress:', error);
+        useFallbackContent();
+    }
+}
+
+// Costruisce il contenuto HTML della fase
+function buildPhaseContent(phase) {
+    let content = '';
+    
+    // Immagine in evidenza
+    if (phase.featured_image_url) {
+        content += `
+            <img 
+                src="${phase.featured_image_url}" 
+                alt="${phase.title.rendered}"
+                style="
+                    width: 100%; 
+                    max-height: 400px; 
+                    object-fit: cover; 
+                    border-radius: 16px; 
+                    margin-bottom: 30px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+                "
+            >
+        `;
+    }
+    
+    // Contenuto della fase
+    content += phase.content.rendered || '<p>Contenuto non disponibile</p>';
+    
+    return content;
+}
+
+// Colori di default per ogni fase
+function getDefaultColor(phaseName) {
+    const colors = {
+        'EMPATIA': '#00B5D8',
+        'DEFINIZIONE': '#E91E63',
+        'IDEAZIONE': '#FFC107',
+        'PROTOTIPAZIONE': '#FF6D00',
+        'TEST': '#9C27B0',
+        'HOME': '#FF0000'
+    };
+    return colors[phaseName] || '#3498db';
+}
+
+// Contenuto di fallback se WordPress non risponde
+function useFallbackContent() {
+    phaseContents = {
+        'EMPATIA': {
+            title: 'EMPATIA',
+            color: '#00B5D8',
+            content: `
+                <h3>Comprendere gli utenti</h3>
+                <p>La fase di empatia consiste nel comprendere profondamente le esigenze, i desideri e le sfide degli utenti.</p>
+                <h4>Obiettivi:</h4>
+                <ul>
+                    <li>Osservare gli utenti nel loro contesto</li>
+                    <li>Condurre interviste approfondite</li>
+                    <li>Identificare i punti di dolore</li>
+                </ul>
+            `
+        },
+        'DEFINIZIONE': {
+            title: 'DEFINIZIONE',
+            color: '#E91E63',
+            content: `
+                <h3>Definire il problema</h3>
+                <p>Sintetizza le informazioni raccolte per definire chiaramente il problema da risolvere.</p>
+            `
+        },
+        'IDEAZIONE': {
+            title: 'IDEAZIONE',
+            color: '#FFC107',
+            content: `
+                <h3>Generare idee</h3>
+                <p>Brainstorming creativo per generare quante più soluzioni possibili.</p>
+            `
+        },
+        'PROTOTIPAZIONE': {
+            title: 'PROTOTIPAZIONE',
+            color: '#FF6D00',
+            content: `
+                <h3>Creare prototipi</h3>
+                <p>Trasforma le idee in prototipi tangibili da testare.</p>
+            `
+        },
+        'TEST': {
+            title: 'TEST',
+            color: '#9C27B0',
+            content: `
+                <h3>Testare le soluzioni</h3>
+                <p>Valida i prototipi con utenti reali e raccogli feedback.</p>
+            `
+        },
+        'HOME': {
+            title: 'HOME',
+            color: '#FF0000',
+            content: `<p>Torna alla homepage</p>`
+        }
+    };
+    
+    console.log('⚠️ Uso contenuto di fallback');
+}
+
+
+
 // CREA PARTICELLE DALLA FACCIA CLICCATA
 function createParticlesFromFaceWithColor(faceMesh, color, intersectionPoint, faceNormal, shouldAnimateToRight = false) {
   if (particleSystem) {
@@ -810,7 +940,10 @@ function showPhaseCard(faceIndex) {
   const header = document.getElementById('card-header');
   const content = document.getElementById('card-content');
 
-  const phase = phaseContents[faceIndex];
+  // Mappa l'indice alla fase corrispondente
+  const phaseNames = ['EMPATIA', 'DEFINIZIONE', 'IDEAZIONE', 'PROTOTIPAZIONE', 'TEST', 'HOME'];
+  const phaseName = phaseNames[faceIndex];
+  const phase = phaseContents[phaseName];
 
   if (phase) {
     // Imposta header
@@ -818,39 +951,17 @@ function showPhaseCard(faceIndex) {
     header.style.borderColor = phase.color;
     header.style.color = phase.color;
     
-    // Mapping dei path delle pagine HTML
-    const pageUrls = {
-      0: './pages/_EMPATIZZARE_/empatizzare.html',
-      1: './pages/_DEFINIRE_/definire.html',
-      2: './pages/_IDEARE_/ideare.html',
-      3: './pages/_PROTOTIPARE_/prototipare.html',
-      4: './pages/_TESTARE_/testare.html'
-    };
+    // Imposta contenuto (già con immagini e HTML da WordPress)
+    content.innerHTML = phase.content;
     
-    // Carica la pagina HTML tramite iframe
-    if (pageUrls[faceIndex]) {
-      console.log('Caricamento pagina con iframe:', pageUrls[faceIndex]);
-      
-      // Crea un iframe per caricare la pagina
-      content.innerHTML = `
-        <iframe 
-          src="${pageUrls[faceIndex]}" 
-          style="width: 100%; height: 100%; border: none; background: transparent;"
-          frameborder="0"
-          onload="console.log('Iframe caricato:', '${pageUrls[faceIndex]}')"
-          onerror="console.error('Errore caricamento iframe:', '${pageUrls[faceIndex]}')"
-        ></iframe>
-      `;
-    } else {
-      // Usa il contenuto hardcoded per fasi senza pagina dedicata
-      content.innerHTML = phase.content;
-    }
+    // Scroll automatico in alto
+    content.scrollTop = 0;
 
     setTimeout(() => {
       card.classList.add('active');
     }, 100);
   } else {
-    console.error('Phase undefined per faceIndex:', faceIndex);
+    console.error('❌ Fase non trovata:', phaseName, 'Index:', faceIndex);
   }
 }
 
