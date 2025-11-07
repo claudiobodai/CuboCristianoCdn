@@ -672,7 +672,7 @@ async function playHomeAnimation() {
 
 async function loadPhasesFromWordPress() {
     try {
-        const response = await fetch('/wp-json/wp/v2/cube-phases?per_page=6&orderby=meta_value_num&meta_key=_phase_order&order=asc');
+       const response = await fetch('/wp-json/wp/v2/cube-phases?per_page=6');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -696,6 +696,12 @@ async function loadPhasesFromWordPress() {
             6: 'HOME'
         };
         
+        phases.sort((a, b) => {
+            const orderA = parseInt(a.phase_order) || 999;
+            const orderB = parseInt(b.phase_order) || 999;
+            return orderA - orderB;
+        });
+
         phases.forEach(phase => {
             const order = parseInt(phase.phase_order) || 0;
             const phaseName = phaseMap[order];
