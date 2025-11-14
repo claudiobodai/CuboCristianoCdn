@@ -8,8 +8,94 @@ html, body {
   box-sizing: border-box;
   overscroll-behavior: none;
 }
+/* Theme variables and light/dark overrides */
+:root {
+  --bg-dark: #0d0d0d;
+  --bg-light: #ffffff;
+  --fg-dark: #e8e8e8;
+  --fg-light: #111114;
+  --card-dark: linear-gradient(135deg, rgba(15,15,35,0.98) 0%, rgba(30,30,50,0.98) 100%);
+  --card-light: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(240,240,250,0.98) 100%);
+  --overlay-dark: rgba(13,13,13,1);
+  --overlay-light: rgba(255,255,255,1);
+  --overlay: var(--overlay-dark);
+  /* Pattern / decorative vars (theme-aware) */
+  --pattern-line: rgba(136, 136, 136, 0.01);
+  --pattern-radial: rgba(136, 136, 136, 0.02);
+  --card-header-bg: rgba(24,24,44,0.95);
+  --phase-text-color: #e0e0e0;
+  /* SVG pattern backgrounds (dark / light). Keep compact data-URIs here. */
+  --bg-pattern-dark: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280"><defs><style>.initials{font-family:Georgia,serif;font-size:32px;font-weight:bold;fill:%23888888;opacity:0.35}</style></defs><g transform="translate(50,50) rotate(-15)"><text class="initials" x="0" y="0">SR</text></g><g transform="translate(230,50)"><circle cx="0" cy="0" r="8" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><circle cx="0" cy="0" r="3" fill="%23888888" opacity="0.25"/></g><g transform="translate(140,120) rotate(15)"><text class="initials" x="0" y="0">CB</text></g><g transform="translate(40,130)"><path d="M -8,-8 L 8,-8 L 8,8 L -8,8 Z" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25" transform="rotate(45)"/><circle cx="0" cy="0" r="2" fill="%23888888" opacity="0.25"/></g><g transform="translate(50,210) rotate(-15)"><text class="initials" x="0" y="0">JL</text></g><g transform="translate(230,210)"><path d="M 0,-10 L 7,0 L 0,10 L -7,0 Z" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><path d="M 0,-5 L 3.5,0 L 0,5 L -3.5,0 Z" fill="%23888888" opacity="0.2"/></g><g transform="translate(140,260) rotate(15)"><text class="initials" x="0" y="0">GD</text></g><g transform="translate(230,130)"><rect x="-6" y="-6" width="12" height="12" rx="2" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><rect x="-3" y="-3" width="6" height="6" rx="1" fill="%23888888" opacity="0.2"/></g></svg>');
+  --bg-pattern-light: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280"><defs><style>.initials{font-family:Georgia,serif;font-size:32px;font-weight:bold;fill:%23333333;opacity:0.25}</style></defs><g transform="translate(50,50) rotate(-15)"><text class="initials" x="0" y="0">SR</text></g><g transform="translate(230,50)"><circle cx="0" cy="0" r="8" fill="none" stroke="%23333333" stroke-width="2" opacity="0.16"/><circle cx="0" cy="0" r="3" fill="%23333333" opacity="0.16"/></g><g transform="translate(140,120) rotate(15)"><text class="initials" x="0" y="0">CB</text></g><g transform="translate(40,130)"><path d="M -8,-8 L 8,-8 L 8,8 L -8,8 Z" fill="none" stroke="%23333333" stroke-width="2" opacity="0.16" transform="rotate(45)"/><circle cx="0" cy="0" r="2" fill="%23333333" opacity="0.12"/></g><g transform="translate(50,210) rotate(-15)"><text class="initials" x="0" y="0">JL</text></g><g transform="translate(230,210)"><path d="M 0,-10 L 7,0 L 0,10 L -7,0 Z" fill="none" stroke="%23333333" stroke-width="2" opacity="0.16"/><path d="M 0,-5 L 3.5,0 L 0,5 L -3.5,0 Z" fill="%23333333" opacity="0.12"/></g><g transform="translate(140,260) rotate(15)"><text class="initials" x="0" y="0">GD</text></g><g transform="translate(230,130)"><rect x="-6" y="-6" width="12" height="12" rx="2" fill="none" stroke="%23333333" stroke-width="2" opacity="0.16"/><rect x="-3" y="-3" width="6" height="6" rx="1" fill="%23333333" opacity="0.12"/></g></svg>');
+  --bg-pattern-svg: var(--bg-pattern-dark);
+}
+
+html[data-theme="light"] body {
+  background: var(--bg-light) !important;
+  color: var(--fg-light) !important;
+}
+
+html[data-theme="light"] .phase-card {
+  background: var(--card-light) !important;
+  border-left-color: rgba(0,0,0,0.06) !important;
+}
+
+html[data-theme="light"] .phase-card-header {
+  background: transparent !important;
+  color: var(--fg-light) !important;
+  border-bottom-color: rgba(0,0,0,0.08) !important;
+}
+
+html[data-theme="light"] .phase-card-content {
+  color: var(--fg-light) !important;
+}
+/* Light-theme overrides for decorative patterns and phase-card specifics */
+html[data-theme="light"] {
+  --bg-pattern-svg: var(--bg-pattern-light);
+  --pattern-line: rgba(0,0,0,0.03);
+  --pattern-radial: rgba(0,0,0,0.03);
+  --card-header-bg: transparent;
+  --phase-text-color: var(--fg-light);
+  --overlay: var(--overlay-light);
+}
+
+html[data-theme="light"] .phase-card-close {
+  color: var(--fg-light) !important;
+}
+
+/* Theme toggle button */
+.theme-toggle-btn {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 99999; /* ensure above canvas/overlays on mobile */
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+}
+.theme-toggle-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(0,120,215,0.15); }
+
+html[data-theme="light"] .theme-toggle-btn {
+  background: rgba(0,0,0,0.06);
+  color: #222;
+}
 /* MOBILE RESPONSIVE - TUTTO SISTEMATO */
 @media (max-width: 768px) {
+  #theme-toggle{
+    display: none !important;
+  }
   body {
     overflow-x: hidden !important;
     overflow-y: hidden !important;
@@ -84,7 +170,7 @@ html, body {
     top: 0;
     left: 0;
     z-index: 9;
-    background: #18182c;
+    background: var(--card-header-bg);
     padding-top: 20px !important;
   }
   .phase-card-content {
@@ -126,7 +212,7 @@ html, body {
   .phase-card-top {
     position: sticky !important;
     top: 0 !important;
-    background: #18182c !important;
+    background: var(--card-header-bg) !important;
     z-index: 10 !important;
   }
 
@@ -137,13 +223,23 @@ html, body {
     bottom: 0 !important;
     z-index: 1002 !important;
     background: #fff !important;
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.18) !important;
+    box-shadow: 0 -4px 16px  rgba(0,0,0,0.18) !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     height: auto !important;
     min-height: 35px !important;
     padding: 8px 10px !important;
+  }
+
+  /* Make theme toggle easier to tap on mobile and respect safe-area insets */
+  .theme-toggle-btn {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+    top: calc(12px + env(safe-area-inset-top));
+    right: calc(12px + env(safe-area-inset-right));
+    z-index: 99999;
   }
   footer img {
     height: auto !important;
@@ -291,7 +387,7 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: #0d0d0d;
+  background: var(--bg-dark);
   position: relative;
   width: 100vw;
   height: 100vh;
@@ -305,10 +401,8 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: #0d0d0d;
-  background-image:
-    /* Pattern con iniziali ruotate e decorazioni eleganti */
-    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280"><defs><style>.initials{font-family:Georgia,serif;font-size:32px;font-weight:bold;fill:%23888888;opacity:0.35}</style></defs><g transform="translate(50,50) rotate(-15)"><text class="initials" x="0" y="0">SR</text></g><g transform="translate(230,50)"><circle cx="0" cy="0" r="8" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><circle cx="0" cy="0" r="3" fill="%23888888" opacity="0.25"/></g><g transform="translate(140,120) rotate(15)"><text class="initials" x="0" y="0">CB</text></g><g transform="translate(40,130)"><path d="M -8,-8 L 8,-8 L 8,8 L -8,8 Z" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25" transform="rotate(45)"/><circle cx="0" cy="0" r="2" fill="%23888888" opacity="0.25"/></g><g transform="translate(50,210) rotate(-15)"><text class="initials" x="0" y="0">JL</text></g><g transform="translate(230,210)"><path d="M 0,-10 L 7,0 L 0,10 L -7,0 Z" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><path d="M 0,-5 L 3.5,0 L 0,5 L -3.5,0 Z" fill="%23888888" opacity="0.2"/></g><g transform="translate(140,260) rotate(15)"><text class="initials" x="0" y="0">GD</text></g><g transform="translate(230,130)"><rect x="-6" y="-6" width="12" height="12" rx="2" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><rect x="-3" y="-3" width="6" height="6" rx="1" fill="%23888888" opacity="0.2"/></g></svg>');
+  background-color: var(--overlay);
+  background-image: var(--bg-pattern-svg);
   background-size: 280px 280px;
   background-position: 0 0;
   opacity: 1;
@@ -328,18 +422,18 @@ body::after {
       45deg,
       transparent,
       transparent 400px,
-      rgba(136, 136, 136, 0.01) 400px,
-      rgba(136, 136, 136, 0.01) 401px
+      var(--pattern-line) 400px,
+      var(--pattern-line) 401px
     ),
     repeating-linear-gradient(
       -45deg,
       transparent,
       transparent 400px,
-      rgba(136, 136, 136, 0.01) 400px,
-      rgba(136, 136, 136, 0.01) 401px
+      var(--pattern-line) 400px,
+      var(--pattern-line) 401px
     ),
-    radial-gradient(circle at 30% 40%, rgba(136, 136, 136, 0.02) 0%, transparent 60%),
-    radial-gradient(circle at 70% 60%, rgba(136, 136, 136, 0.02) 0%, transparent 60%);
+    radial-gradient(circle at 30% 40%, var(--pattern-radial) 0%, transparent 60%),
+    radial-gradient(circle at 70% 60%, var(--pattern-radial) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -395,7 +489,7 @@ canvas {
   top: 0;
   width: 55%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(15, 15, 35, 0.98) 0%, rgba(30, 30, 50, 0.98) 100%);
+  background: var(--card-dark);
   backdrop-filter: blur(10px);
   border-left: 2px solid rgba(255, 255, 255, 0.1);
   box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
@@ -422,12 +516,13 @@ canvas {
   text-transform: uppercase;
   letter-spacing: 2px;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  background: var(--card-header-bg);
 }
 
 .phase-card-content {
   font-size: 18px;
   line-height: 1.8;
-  color: #e0e0e0;
+  color: var(--phase-text-color);
   overflow-y: auto;
 }
 
@@ -479,7 +574,7 @@ canvas {
   height: 40px;
   cursor: pointer;
   font-size: 28px;
-  color: #ffffff;
+  color: var(--fg-dark);
   transition: all 0.3s;
   background: transparent;
   border: none !important;

@@ -27,7 +27,7 @@ const COLORS = {
   F: 0xFFC107, 
   B: 0xFF0000, 
   BODY: 0x0b0f18, 
-  EDGE: 0x263046   
+  EDGE: 0x00000000   
 };
 
 let phaseContents = {};
@@ -111,6 +111,64 @@ function init() {
 
   buildRubikCube();
 
+  // Observe theme changes so stickers/text can update when user toggles theme
+  try {
+    const rootEl = document.documentElement;
+    let lastTheme = rootEl.getAttribute('data-theme') || 'dark';
+    const themeObserver = new MutationObserver(muts => {
+      muts.forEach(m => {
+        if (m.attributeName === 'data-theme') {
+          const newTheme = rootEl.getAttribute('data-theme') || 'dark';
+          if (newTheme !== lastTheme) {
+            lastTheme = newTheme;
+            // Rebuild stickers and text textures to reflect the new theme
+            // Apply theme colors for cube body/edges immediately if possible,
+            // otherwise defer rebuild until animations finish to avoid duplicating geometry during scramble.
+            function applyThemeColors(theme) {
+              if (theme === 'light') {
+                COLORS.BODY = 0x0b0f18;
+                COLORS.EDGE = 0x263046;
+              } else {
+                COLORS.BODY = 0x0b0f18;
+                COLORS.EDGE = 0x263046;
+              }
+            }
+
+            if (typeof animating !== 'undefined' && animating) {
+              // mark pending change and let a poller apply it when animation ends
+              window._pendingThemeChange = true;
+            } else if (typeof queue !== 'undefined' && queue.length > 0) {
+              window._pendingThemeChange = true;
+            } else {
+              applyThemeColors(newTheme);
+              buildRubikCube();
+            }
+          }
+        }
+      });
+    });
+    themeObserver.observe(rootEl, { attributes: true });
+    // Poller: if a theme change was deferred while animating/scrambling, apply it once animations finish
+    try {
+      setInterval(() => {
+        if (window._pendingThemeChange && !animating && (!queue || queue.length === 0)) {
+          const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          if (currentTheme === 'light') {
+            COLORS.BODY = 0x0b0f18;
+            COLORS.EDGE = 0x263046;
+          } else {
+            COLORS.BODY = 0x0b0f18;
+            COLORS.EDGE = 0x263046;
+          }
+          try { buildRubikCube(); } catch(e) { console.error('Error rebuilding cube for pending theme:', e); }
+          window._pendingThemeChange = false;
+        }
+      }, 250);
+    } catch (e) {}
+  } catch (e) {
+    // ignore if MutationObserver not available
+  }
+
   // Raycaster e mouse
   raycaster = new THREE.Raycaster();
   mouse = new THREE.Vector2();
@@ -172,18 +230,42 @@ function makeSticker(color, faceType, gridX, gridY) {
   shape.quadraticCurveTo(x, y, x + radius, y);
 
   const g = new THREE.ShapeGeometry(shape);
+  // Use the provided face color so stickers keep their original hues
+  // `color` is expected to be a number (e.g., 0xff0000) or a hex string
+  function normalizeColor(c) {
+    if (typeof c === 'number') return c;
+    if (typeof c === 'string') {
+      return parseInt(c.replace('#',''), 16);
+    }
+    return 0x000000;
+  }
+
+  const faceFill = normalizeColor(color);
   const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
-    color,
+    color: faceFill,
     side: THREE.DoubleSide
   }));
 
-  // Aggiunge bordo bianco
+  // Aggiunge bordo con contrasto automatico rispetto al colore della faccia
   const points = shape.getPoints(50);
   const borderGeometry = new THREE.BufferGeometry().setFromPoints(points);
-  const borderMaterial = new THREE.LineBasicMaterial({ 
-    color: 0xffffff, 
-    linewidth: 2
-  });
+  function numToRgb(n) {
+    const hex = n.toString(16).padStart(6,'0');
+    return { r: parseInt(hex.slice(0,2),16), g: parseInt(hex.slice(2,4),16), b: parseInt(hex.slice(4,6),16) };
+  }
+  function luminance(r,g,b){
+    const a = [r,g,b].map(v => {
+      v /= 255;
+      return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+    });
+    return 0.2126*a[0] + 0.7152*a[1] + 0.0722*a[2];
+  }
+
+  const rgb = numToRgb(faceFill);
+  const lum = luminance(rgb.r, rgb.g, rgb.b);
+  // If face is dark, use light border; if light, use dark border
+  const borderColor = lum < 0.5 ? 0xffffff : 0x111111;
+  const borderMaterial = new THREE.LineBasicMaterial({ color: borderColor, linewidth: 2 });
   const border = new THREE.LineLoop(borderGeometry, borderMaterial);
   mesh.add(border);
 
@@ -210,7 +292,7 @@ function createTextForFace(faceType) {
   const baseScale = isLongWord ? 0.9 : 0.8;
 
   // Crea DUE texture: una normale e una speculare
-  function createTexture(flip = false) {
+    function createTexture(flip = false) {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 512;
@@ -223,6 +305,10 @@ function createTextForFace(faceType) {
       ctx.scale(-1, 1);
     }
     
+    // Text color should contrast with sticker fill
+    const theme = (typeof document !== 'undefined' && document.documentElement)
+      ? (document.documentElement.getAttribute('data-theme') || 'dark')
+      : 'dark';
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
@@ -1087,6 +1173,36 @@ function showPhaseCard(faceIndex) {
     // Imposta header
     header.textContent = phase.title;
     header.style.color = phase.color;
+    // Imposta background for the card using a soft gradient derived from the phase color
+    try {
+      const cardEl = card;
+      // Force the inline background with !important so it dominates stylesheet overrides
+      cardEl.style.setProperty('background', `linear-gradient(135deg, ${phase.color}33, ${phase.color}11)`, 'important');
+
+      // Contrast: choose readable text color for content based on phase color luminance
+      function hexToRgb(hex) {
+        const h = hex.replace('#','');
+        return { r: parseInt(h.substring(0,2),16), g: parseInt(h.substring(2,4),16), b: parseInt(h.substring(4,6),16) };
+      }
+      function luminance(r,g,b){
+        const a = [r,g,b].map(v => {
+          v /= 255;
+          return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+        });
+        return 0.2126*a[0] + 0.7152*a[1] + 0.0722*a[2];
+      }
+      const rgb = hexToRgb(phase.color || '#000000');
+      const lum = luminance(rgb.r, rgb.g, rgb.b);
+      const textContrast = lum > 0.5 ? '#111111' : '#FFFFFF';
+      content.style.color = textContrast;
+      cardEl.style.color = textContrast;
+      if (header) header.style.color = phase.color;
+      // Ensure close button contrasts
+      const closeBtn = document.querySelector('.phase-card-close');
+      if (closeBtn) closeBtn.style.color = textContrast;
+    } catch(e) {
+      // ignore style errors
+    }
     
     // Imposta contenuto (già con immagini e HTML da WordPress)
     content.innerHTML = phase.content;

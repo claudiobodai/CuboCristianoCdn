@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d0d0d">
     <title>Cubo Interattivo Three.js</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
@@ -16,6 +17,7 @@
   </head>
   <body>
     <div id="three-container"></div>
+    <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">🌙</button>
     <img src="qrCode.png" />
 
     <!-- <button class="reset-animation-btn" id="reset-animation-btn" title="Reset Animation">
@@ -38,6 +40,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="js/theme-toggle.js"></script>
     <script src="js/rubik-cube.js"></script>
   </body>
 </html>
