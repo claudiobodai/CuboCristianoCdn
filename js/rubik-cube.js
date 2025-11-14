@@ -1094,13 +1094,76 @@ function showPhaseCard(faceIndex) {
     // Scroll automatico in alto
     content.scrollTop = 0;
 
+    // Variabile per fare un movimento responsive per telefono pc e schermo grande
+    const isMobile = window.innerWidth <= 768;
+    const isLargeScreen = window.innerWidth >= 1440;
+    let targetX = 0;
+    let targetY  = 0;
+
+    if (isMobile) {
+      // Sposta sopra e centra orizzontalmente
+      targetX = 0;
+      targetY = 4;
+      // Ridimensiona il cubo per schermi piccoli
+      gsap.to(world.scale, {
+        x: 0.35,
+        y: 0.35,
+        z: 0.35,
+        duration: 0.8,
+        ease: "power2.inOut"
+      });
+    }
+    if (isLargeScreen) {
+      // Sposta a sinistra: calcolo responsive basato sulla larghezza finestra
+      // Mappa la width [1441, 3820] -> [6, 7.5] e applica segno negativo
+      const width = window.innerWidth;
+      const minW = 1441;
+      const maxW = 3820;
+      const minX = 6;    // valore desiderato a width = minW
+      const maxX = 7.5;  // valore desiderato a width = maxW
+
+      // clamp width nell'intervallo e mappa linearmente
+      const clamped = Math.min(Math.max(width, minW), maxW);
+      const t = (clamped - minW) / (maxW - minW);
+      const mapped = minX + t * (maxX - minX);
+
+      targetX = -mapped;
+      targetY = -1.5;
+    }
+    else {
+      // Sposta a sinistra: calcolo responsive basato sulla larghezza finestra
+      // Mappa la width [1441, 3820] -> [6, 7.5] e applica segno negativo
+      const width = window.innerWidth;
+      const minW = 769;
+      const maxW = 1439;
+      const minX = 5.5;  // valore desiderato a width = minW
+      const maxX = 5.5;  // valore desiderato a width = maxW
+
+      // clamp width nell'intervallo e mappa linearmente
+      const clamped = Math.min(Math.max(width, minW), maxW);
+      const t = (clamped - minW) / (maxW - minW);
+      const mapped = minX + t * (maxX - minX);
+
+      targetX = -mapped;
+      targetY = -1.5;
+
+      // Ridimensiona il cubo per schermi
+      gsap.to(world.scale, {
+        x: 0.7,
+        y: 0.7,
+        z: 0.7,
+        duration: 0.8,
+        ease: "power2.inOut"
+      });
+    }
+
     setTimeout(() => {
       card.classList.add('active');
       // Dopo che la card è attiva, centra il cubo nella zona rimasta visibile
       setTimeout(() => {
         gsap.to(world.position, {
-          x: -8.5,
-          y: -2,
+          x: targetX,
+          y: targetY,
           duration: 0.8,
           ease: "power2.inOut"
         });
@@ -1123,6 +1186,13 @@ function closePhaseCard() {
       duration: 0.8,
       ease: "power2.inOut"
     });
+    gsap.to(world.scale, {
+        x: 1,
+        y: 1,
+        z: 1,
+        duration: 0.8,
+        ease: "power2.inOut"
+      });
   }
   
   // Resetta lo stato di animating per permettere nuovi click
@@ -1593,7 +1663,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Avvia animazione di assemblaggio all'avvio
   setTimeout(() => {
-    startAssemblyAnimation();
+    // startAssemblyAnimation();
   }, 500);
 
   // Crea un wrapper per posizionare bottone e QR code
