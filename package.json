@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "node": "^25.2.0"
+  },
+  "name": "cubocristianocdn",
+  "version": "1.0.0",
+  "description": "Rubik Cube CDN",
+  "main": "index.html",
+ "scripts": {
+    "start": "npx serve -l tcp://0.0.0.0:3000 ."
+  }
+}

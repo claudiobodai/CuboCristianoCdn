@@ -1,0 +1,568 @@
+html, body {
+  width: 100vw;
+  height: 100vh;
+  min-width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overscroll-behavior: none;
+}
+/* MOBILE RESPONSIVE - TUTTO SISTEMATO */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    touch-action: pan-y !important;
+  }
+
+  #qr-code-wrapper {
+    display: none !important;
+  }
+
+  canvas {
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 11 !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    width: 100vw !important;
+    height: calc(100vh - 55px) !important;
+    display: block !important;
+  }
+  
+  footer {
+    display: none !important;
+  }
+
+  #three-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 55px !important;
+    width: 100vw !important;
+    height: calc(100vh - 55px) !important;
+    min-height: unset !important;
+    max-height: calc(100vh - 55px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 10 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* Card che entra dal basso con contenuto ben visibile */
+  .phase-card {
+    width: 100vw !important;
+    height: 75vh !important;
+    left: 0 !important;
+    top: auto !important;
+    border-left: none !important;
+    border-top: 3px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: 28px 28px 0 0 !important;
+    padding: 0px !important;
+    transition: bottom 0.55s cubic-bezier(0.68, -0.55, 0.265, 2) !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7) !important;
+    position: fixed !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .phase-card.active {
+    bottom: 0 !important;
+    right: 0 !important;
+  }
+  .phase-card-header {
+    font-size: 1.7rem !important;
+    margin-bottom: 18px !important;
+    padding-bottom: 12px !important;
+    padding-inline: 30px;
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 9;
+    background: #18182c;
+    padding-top: 20px !important;
+  }
+  .phase-card-content {
+    font-size: 1.08rem !important;
+    line-height: 1.65 !important;
+    padding: 0 6px !important;
+    padding-inline: 30px !important;
+  }
+  .phase-card-content h3 {
+    font-size: 1.35rem !important;
+    margin-top: 22px !important;
+    margin-bottom: 14px !important;
+  }
+  .phase-card-content h4 {
+    font-size: 1.18rem !important;
+    margin-top: 18px !important;
+    margin-bottom: 12px !important;
+  }
+  .phase-card-content ul {
+    margin-left: 24px !important;
+    padding-left: 10px !important;
+  }
+  .phase-card-content li {
+    margin-bottom: 12px !important;
+  }
+  .phase-card-close {
+    top: 14px !important;
+    right: 14px !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1.5rem !important;
+    z-index: 10 !important;
+  }
+  .phase-card-content blockquote {
+    margin: 16px 0 !important;
+    padding: 14px 16px !important;
+    font-size: 1rem !important;
+  }
+  .phase-card-top {
+    position: sticky !important;
+    top: 0 !important;
+    background: #18182c !important;
+    z-index: 10 !important;
+  }
+
+  footer {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 1002 !important;
+    background: #fff !important;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.18) !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: auto !important;
+    min-height: 35px !important;
+    padding: 8px 10px !important;
+  }
+  footer img {
+    height: auto !important;
+    max-height: 45px !important;
+    width: auto !important;
+    max-width: 85vw !important;
+    object-fit: contain !important;
+  }
+}
+
+/* DESKTOP/LARGE SCREENS - Footer responsive */
+@media (min-width: 769px) {
+  footer {
+    padding: 12px 20px !important;
+  }
+  
+  footer img {
+    max-height: 60px !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  footer {
+    padding: 15px 30px !important;
+  }
+  
+  footer img {
+    max-height: 70px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  footer {
+    padding: 18px 40px !important;
+  }
+  
+  footer img {
+    max-height: 80px !important;
+  }
+}
+
+@media (min-width: 2000px) {
+  footer {
+    padding: 20px 50px !important;
+  }
+  
+  footer img {
+    height: 120px !important;
+    max-height: 120px !important;
+  }
+
+  #qr-code-btn img {
+    width: 120px !important;
+    height: 120px !important;
+    position: absolute !important;
+    bottom: 10px !important;
+    left: 10px !important;
+  }
+
+  #qr-code-btn {
+    width: 140px !important;
+    height: 140px !important;
+    position: absolute !important;
+    bottom: 10px !important;
+    left: 10px !important;
+  }
+
+  #qr-code-container{
+    margin-left: 10px !important;
+    margin-bottom: 170px !important;
+    padding: 16px !important;
+    min-width: 450px !important;
+    min-height: 450px !important;
+  }
+  #qr-code-container img {
+    width: 450px !important;
+    height: 500px !important;
+  }
+}
+
+/* QR Code Styles */
+
+/* Wrapper per bottone e QR code */
+#qr-code-wrapper {
+  position: fixed;
+  left: 5px;
+  bottom: 5px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+/* Bottone QR code */
+#qr-code-btn {
+  width: 56px;
+  height: 56px;
+  background: #fff;
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+#qr-code-btn img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+#qr-code-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #0078d7;
+}
+
+/* Finestra QR code */
+#qr-code-container {
+  display: none;
+  margin-left: 16px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+  padding: 16px;
+  align-items: center;
+  justify-content: center;
+  min-width: 200px;
+  min-height: 200px;
+  animation: fadeInQR 0.2s;
+}
+#qr-code-container img {
+  width: 140px;
+  height: 140px;
+  display: block;
+}
+
+@keyframes fadeInQR {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #0d0d0d;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0d0d0d;
+  background-image:
+    /* Pattern con iniziali ruotate e decorazioni eleganti */
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280"><defs><style>.initials{font-family:Georgia,serif;font-size:32px;font-weight:bold;fill:%23888888;opacity:0.35}</style></defs><g transform="translate(50,50) rotate(-15)"><text class="initials" x="0" y="0">SR</text></g><g transform="translate(230,50)"><circle cx="0" cy="0" r="8" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><circle cx="0" cy="0" r="3" fill="%23888888" opacity="0.25"/></g><g transform="translate(140,120) rotate(15)"><text class="initials" x="0" y="0">CB</text></g><g transform="translate(40,130)"><path d="M -8,-8 L 8,-8 L 8,8 L -8,8 Z" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25" transform="rotate(45)"/><circle cx="0" cy="0" r="2" fill="%23888888" opacity="0.25"/></g><g transform="translate(50,210) rotate(-15)"><text class="initials" x="0" y="0">JL</text></g><g transform="translate(230,210)"><path d="M 0,-10 L 7,0 L 0,10 L -7,0 Z" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><path d="M 0,-5 L 3.5,0 L 0,5 L -3.5,0 Z" fill="%23888888" opacity="0.2"/></g><g transform="translate(140,260) rotate(15)"><text class="initials" x="0" y="0">GD</text></g><g transform="translate(230,130)"><rect x="-6" y="-6" width="12" height="12" rx="2" fill="none" stroke="%23888888" stroke-width="2" opacity="0.25"/><rect x="-3" y="-3" width="6" height="6" rx="1" fill="%23888888" opacity="0.2"/></g></svg>');
+  background-size: 280px 280px;
+  background-position: 0 0;
+  opacity: 1;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 400px,
+      rgba(136, 136, 136, 0.01) 400px,
+      rgba(136, 136, 136, 0.01) 401px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 400px,
+      rgba(136, 136, 136, 0.01) 400px,
+      rgba(136, 136, 136, 0.01) 401px
+    ),
+    radial-gradient(circle at 30% 40%, rgba(136, 136, 136, 0.02) 0%, transparent 60%),
+    radial-gradient(circle at 70% 60%, rgba(136, 136, 136, 0.02) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#three-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+canvas {
+  display: block !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  position: relative !important;
+  z-index: 1 !important;
+  object-fit: contain !important;
+}
+
+/* Contenuto segreto dopo l'apertura */
+#secret-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-family: sans-serif;
+  font-size: 1.5rem;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 1s ease;
+  pointer-events: none;
+}
+
+
+.phase-card {
+  position: fixed;
+  right: -60%;
+  top: 0;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(15, 15, 35, 0.98) 0%, rgba(30, 30, 50, 0.98) 100%);
+  backdrop-filter: blur(10px);
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  padding: 60px 50px;
+  overflow-y: auto;
+  transition: right 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.phase-card.active {
+  right: 0;
+}
+
+.phase-card.active {
+  right: 0;
+}
+
+.phase-card-header {
+  font-size: 42px;
+  font-weight: 900;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 4px solid;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.phase-card-content {
+  font-size: 18px;
+  line-height: 1.8;
+  color: #e0e0e0;
+  overflow-y: auto;
+}
+
+.phase-card-content h3 {
+  color: #ffffff;
+  font-size: 28px;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+.phase-card-content h4 {
+  color: #d0d0d0;
+  font-size: 22px;
+  margin-top: 25px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.phase-card-content ul {
+  margin-left: 30px;
+  margin-top: 15px;
+}
+
+.phase-card-content li {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.phase-card-content p {
+  margin-bottom: 20px;
+}
+
+.phase-card-content blockquote {
+  margin: 25px 0;
+  padding: 20px 25px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  border-left: 4px solid;
+  font-style: italic;
+  color: #f0f0f0;
+}
+
+.phase-card-close {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 28px;
+  color: #ffffff;
+  transition: all 0.3s;
+  background: transparent;
+  border: none !important;
+  border-radius: 50%;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phase-card-close:hover {
+  background: transparent;
+  transform: rotate(90deg);
+}
+
+.phase-card::-webkit-scrollbar {
+  width: 10px;
+}
+
+.phase-card::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.phase-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  transition: background 0.3s;
+}
+
+.phase-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+.phase-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Animazione di entrata per il contenuto */
+@keyframes slideInContent {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.phase-card.active .phase-card-content {
+  animation-delay: 0.2s;
+}
+
+/* .reset-animation-btn {
+  position: fixed;
+  bottom: 80px;
+  left: 20px;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  z-index: 999;
+  display: none !important;
+}
+
+.reset-animation-btn:hover {
+  transform: scale(1.1) rotate(180deg);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.reset-animation-btn:active {
+  transform: scale(0.95);
+}
+
+.reset-animation-btn svg {
+  width: 30px;
+  height: 30px;
+  fill: white;
+} */

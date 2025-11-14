@@ -49,15 +49,28 @@ function init() {
   // Scena
   scene = new THREE.Scene();
 
-  // Camera
+  // Camera - FOV adattivo per device
+  const isMobile = window.innerWidth < 800;
+  const aspect = window.innerWidth / window.innerHeight;
+  
   camera = new THREE.PerspectiveCamera(
-    40,
-    window.innerWidth / window.innerHeight,
+    isMobile ? 30 : 40,  // FOV più stretto su mobile per cubo più piccolo
+    aspect,
     0.1,
     100
   );
-  camera.position.set(6.2, 5.4, 7.8);
-  camera.lookAt(0, 0, 0);
+  
+  // Posizionamento camera responsive
+  if (isMobile) {
+    // Su mobile, camera ancora più lontana per cubo più piccolo
+    const distance = aspect < 0.6 ? 18 : (aspect < 0.75 ? 16 : 15);
+    camera.position.set(0, 0, distance);
+    camera.lookAt(0, 0, 0);
+  } else {
+    // Desktop - posizione classica
+    camera.position.set(6.2, 5.4, 7.8);
+    camera.lookAt(0, 0, 0);
+  }
 
   // Renderer
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -65,12 +78,19 @@ function init() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  // Use the actual container size so the drawing buffer matches displayed canvas
   const container = document.getElementById('three-container');
+  const width = container ? container.clientWidth : window.innerWidth;
+  const height = container ? container.clientHeight : window.innerHeight;
+  renderer.setSize(width, height, false);
+  // Make the canvas scale to the container element
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
   if (container) {
-      container.appendChild(renderer.domElement);
+    container.appendChild(renderer.domElement);
   } else {
-      console.error('Container #three-container non trovato!');
+    console.error('Container #three-container non trovato!');
+    document.body.appendChild(renderer.domElement);
   }
   // Luci
   scene.add(new THREE.AmbientLight(0xffffff, 0.35));
@@ -359,9 +379,30 @@ function buildRubikCube() {
 
 // Gestione eventi
 function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
+  const isMobile = window.innerWidth < 800;
+  // Prefer the #three-container size so canvas drawing matches displayed size
+  const container = document.getElementById('three-container');
+  const width = container ? container.clientWidth : window.innerWidth;
+  const height = container ? container.clientHeight : window.innerHeight;
+  const aspect = width / height;
+
+  camera.aspect = aspect;
+
+  // Aggiorna FOV in base al device
+  camera.fov = isMobile ? 30 : 40;
+
+  // Riposiziona camera se necessario
+  if (isMobile && !isOpening) {
+    const distance = aspect < 0.6 ? 18 : (aspect < 0.75 ? 16 : 15);
+    camera.position.set(0, 0, distance);
+    camera.lookAt(0, 0, 0);
+  } else if (!isMobile && !isOpening) {
+    camera.position.set(6.2, 5.4, 7.8);
+    camera.lookAt(0, 0, 0);
+  }
+
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(width, height, false);
 }
 
 // Drag per ruotare il cubo
@@ -561,13 +602,7 @@ function onClick(event) {
       clearTimeout(inactivityTimer);
       // NON impostare animating = true qui, lo farà startScrambleAndSolve()
       
-      // Sposta il cubo a sinistra
-      gsap.to(world.position, {
-        x: -8.5,
-        y: -2,
-        duration: 0.8,
-        ease: "power2.inOut"
-      });
+      // Rimuovo lo spostamento fisso e userò un centramento dinamico
 
       // Effetto bounce del cubo
       gsap.to(world.scale, {
@@ -1039,6 +1074,7 @@ function animateParticles() {
 // Mostra la card della fase caricando il contenuto HTML
 function showPhaseCard(faceIndex) {
   const card = document.getElementById('phase-card');
+  const top = document.getElementById('phase-card-top');
   const header = document.getElementById('card-header');
   const content = document.getElementById('card-content');
 
@@ -1050,7 +1086,6 @@ function showPhaseCard(faceIndex) {
   if (phase) {
     // Imposta header
     header.textContent = phase.title;
-    header.style.borderColor = phase.color;
     header.style.color = phase.color;
     
     // Imposta contenuto (già con immagini e HTML da WordPress)
@@ -1061,6 +1096,15 @@ function showPhaseCard(faceIndex) {
 
     setTimeout(() => {
       card.classList.add('active');
+      // Dopo che la card è attiva, centra il cubo nella zona rimasta visibile
+      setTimeout(() => {
+        gsap.to(world.position, {
+          x: -8.5,
+          y: -2,
+          duration: 0.8,
+          ease: "power2.inOut"
+        });
+      }, 420);
     }, 100);
   } else {
     console.error('❌ Fase non trovata:', phaseName, 'Index:', faceIndex);
@@ -1234,6 +1278,10 @@ function randomScramble(n = 22) {
     out.push(f + suf);
   }
   return out;
+}
+
+async function uploadQRCode() {
+  if (animating) return;
 }
 
 async function startAutoAnimation() {
@@ -1534,17 +1582,51 @@ function updateTextOrientation() {
 
 // Event listener per il pulsante
 document.addEventListener('DOMContentLoaded', () => {
-  const resetBtn = document.getElementById('reset-animation-btn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (!animating) {
-        startAutoAnimation();
-      }
-    });
-  }
-  
+  // const resetBtn = document.getElementById('reset-animation-btn');
+  // if (resetBtn) {
+  //   resetBtn.addEventListener('click', () => {
+  //     if (!animating) {
+  //       startAutoAnimation();
+  //     }
+  //   });
+  // }
+
   // Avvia animazione di assemblaggio all'avvio
   setTimeout(() => {
     startAssemblyAnimation();
   }, 500);
+
+  // Crea un wrapper per posizionare bottone e QR code
+  const qrWrapper = document.createElement('div');
+  qrWrapper.id = 'qr-code-wrapper';
+  document.body.appendChild(qrWrapper);
+
+  // Bottone con immagine (quadrato, bordo arrotondato 20px)
+  const qrCodeBtn = document.createElement('button');
+  qrCodeBtn.id = 'qr-code-btn';
+  const btnImg = document.createElement('img');
+  btnImg.src = './qrCodeLogo.png';
+  btnImg.alt = 'Apri QR';
+  btnImg.style.width = '48px';
+  btnImg.style.height = '48px';
+  btnImg.style.display = 'block';
+  qrCodeBtn.appendChild(btnImg);
+  qrWrapper.appendChild(qrCodeBtn);
+
+  // Finestra QR code (immagine senza logo)
+  const qrCodeContainer = document.createElement('div');
+  qrCodeContainer.id = 'qr-code-container';
+  qrCodeContainer.style.display = 'none';
+  const qrImg = document.createElement('img');
+  qrImg.src = './qrCode.png'; 
+  qrImg.alt = 'QR Code';
+  qrImg.style.width = '200px';
+  qrImg.style.height = '220px';
+  qrCodeContainer.appendChild(qrImg);
+  qrWrapper.appendChild(qrCodeContainer);
+
+  // Toggle finestra QR code
+  qrCodeBtn.addEventListener('click', () => {
+    qrCodeContainer.style.display = (qrCodeContainer.style.display === 'block') ? 'none' : 'block';
+  });
 });
