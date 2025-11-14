@@ -1113,7 +1113,7 @@ function showPhaseCard(faceIndex) {
         ease: "power2.inOut"
       });
     }
-    if (isLargeScreen) {
+    else if (isLargeScreen) {
       // Sposta a sinistra: calcolo responsive basato sulla larghezza finestra
       // Mappa la width [1441, 3820] -> [6, 7.5] e applica segno negativo
       const width = window.innerWidth;
@@ -1187,12 +1187,12 @@ function closePhaseCard() {
       ease: "power2.inOut"
     });
     gsap.to(world.scale, {
-        x: 1,
-        y: 1,
-        z: 1,
-        duration: 0.8,
-        ease: "power2.inOut"
-      });
+      x: 1,
+      y: 1,
+      z: 1,
+      duration: 0.8,
+      ease: "power2.inOut"
+    });
   }
   
   // Resetta lo stato di animating per permettere nuovi click
