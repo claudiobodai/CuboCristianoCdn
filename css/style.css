@@ -10,6 +10,10 @@ html, body {
 }
 /* MOBILE RESPONSIVE - TUTTO SISTEMATO */
 @media (max-width: 768px) {
+  /* Keep the visible #theme-toggle control available on mobile. Previously hidden; show it. */
+  #theme-toggle{
+    display: block !important;
+  }
   body {
     overflow-x: hidden !important;
     overflow-y: hidden !important;
@@ -60,7 +64,9 @@ html, body {
     width: 100vw !important;
     height: 75vh !important;
     left: 0 !important;
-    top: auto !important;
+    /* Ensure the card starts fully off-screen on mobile to avoid visible strips */
+    top: -120% !important;
+    right: 0 !important;
     border-left: none !important;
     border-top: 3px solid rgba(255, 255, 255, 0.25) !important;
     border-radius: 28px 28px 0 0 !important;
@@ -128,6 +134,10 @@ html, body {
     top: 0 !important;
     background: #18182c !important;
     z-index: 10 !important;
+  }
+
+  #theme-toggle-hotspot {
+    display: none !important;
   }
 
   footer {
@@ -391,7 +401,7 @@ canvas {
 
 .phase-card {
   position: fixed;
-  right: -60%;
+  right: -100%;
   top: 0;
   width: 55%;
   height: 100%;
