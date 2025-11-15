@@ -170,4 +170,28 @@
       }
     }
   }catch(e){ /* ignore */ }
+
+  // Attach listeners only to the visible button (#theme-toggle).
+  // Removed invisible hotspots and coordinate-based fallbacks to avoid accidental toggles.
+  if (btn) {
+    let lastToggleAt = 0;
+    // Click handler with debounce to avoid double toggles after touch
+    btn.addEventListener('click', function (e) {
+      const now = Date.now();
+      if (now - lastToggleAt < 600) return;
+      window.toggleTheme();
+    });
+
+    // Touchend handler: prevents the default to avoid a follow-up click, then toggles
+    btn.addEventListener('touchend', function (e) {
+      try { e.preventDefault(); } catch (err) {}
+      lastToggleAt = Date.now();
+      window.toggleTheme();
+    }, { passive: false });
+
+    // Keyboard accessibility
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.toggleTheme(); }
+    });
+  }
 })();
