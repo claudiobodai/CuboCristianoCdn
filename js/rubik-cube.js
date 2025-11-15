@@ -1,3 +1,35 @@
+// =====================
+// Idle playful animation
+// =====================
+let idleCubeAnimation = null;
+function startIdleCubeAnimation() {
+  if (idleCubeAnimation) { console.log('[IDLE] già attiva'); return; }
+  if (!world) {
+    console.warn('[IDLE] world non pronto, ritento tra 300ms');
+    setTimeout(startIdleCubeAnimation, 300);
+    return;
+  }
+  console.log('[IDLE] Avvio idle animazione alternativa!');
+  if (typeof gsap !== 'undefined') {
+  } else {
+    console.warn('[IDLE] GSAP non disponibile, idle non parte');
+  }
+}
+
+function stopIdleCubeAnimation() {
+  if (typeof gsap !== 'undefined' && world) {
+    gsap.killTweensOf(world.rotation);
+    gsap.killTweensOf(world.position);
+    gsap.killTweensOf(world.scale);
+  }
+  if (idleCubeAnimation) {
+    try { idleCubeAnimation.kill(); } catch (e) {}
+    idleCubeAnimation = null;
+    if (world && typeof gsap !== 'undefined') {
+      gsap.to(world.scale, { x: 1, y: 1, z: 1, duration: 0.3, overwrite: true });
+    }
+  }
+}
 // ========================================================================================
 // Cubo di Rubik 3D interattivo con navigazione Design Thinking
 // Combina le funzionalità del cubo di Rubik con la navigazione tra le pagine
@@ -11,6 +43,236 @@ let dragStarted = false;
 let previousMousePosition = { x: 0, y: 0 };
 let particleSystem = null;
 let cubelets = [];
+
+// Helper: controlla se il cubo è "busy" (animazioni attive, queue, tween GSAP)
+window.cubeIsBusy = function() {
+  try {
+    const gsapBusy = (typeof gsap !== 'undefined') && (
+      (typeof gsap.isTweening === 'function' && gsap.isTweening(world)) ||
+      (typeof gsap.getTweensOf === 'function' && (gsap.getTweensOf(world).length || gsap.getTweensOf(cubeRoot).length))
+    );
+    return !!animating || (queue && queue.length > 0) || !!gsapBusy;
+  } catch (e) {
+    return !!animating || (queue && queue.length > 0);
+  }
+};
+
+// Token per invalidare animazioni programmate/pendenti quando vogliamo abortare
+window._animationToken = 0;
+
+function safeAbortAnimations() {
+  try {
+    // Invalidate any scheduled starts
+    window._animationToken = (window._animationToken || 0) + 1;
+
+    // Clear queued moves
+    try { queue.length = 0; } catch (e) {}
+
+    // Kill tweens related to main objects
+    try {
+      if (typeof gsap !== 'undefined') {
+        try { gsap.killTweensOf(world); } catch (e) {}
+        try { gsap.killTweensOf(cubeRoot); } catch (e) {}
+        // kill tweens for each cubelet to be safe
+        cubeRoot.children.forEach(c => { try { gsap.killTweensOf(c); } catch (e) {} });
+      }
+    } catch (e) {}
+
+    // Snap every cubie to the nearest grid/quarter turn to avoid half-rotations
+    try {
+      cubeRoot.children.forEach(c => {
+        if (c && c.position) snapCubie(c);
+      });
+    } catch (e) {}
+
+    animating = false;
+  } catch (e) {
+    console.error('safeAbortAnimations error', e);
+  }
+}
+
+// Ricompone il cubo ordinatamente partendo dallo stato attuale.
+// Ordine di posizionamento: layer Y bottom->top (-1,0,1), per ogni layer row Z front->back (1->-1), per ogni row col X left->right (-1->1).
+function recomposeCubeOrdered(opts = {}) {
+  const duration = typeof opts.duration === 'number' ? opts.duration : 0.9;
+  const stagger = typeof opts.stagger === 'number' ? opts.stagger : 0.03;
+  const ease = opts.ease || 'power2.inOut';
+
+  return new Promise(resolve => {
+    try {
+      console.log('recomposeCubeOrdered: started', opts);
+      // Invalidate other animations and clear queue
+      window._animationToken = (window._animationToken || 0) + 1;
+      try { queue.length = 0; } catch (e) {}
+
+      // Ensure any existing tweens are killed
+      try {
+        if (typeof gsap !== 'undefined') {
+          try { gsap.killTweensOf(world); } catch (e) {}
+          try { gsap.killTweensOf(cubeRoot); } catch (e) {}
+          cubeRoot.children.forEach(c => { try { gsap.killTweensOf(c); } catch (e) {} });
+        }
+      } catch (e) {}
+
+      // Build target positions in the requested order
+      const targets = [];
+      for (let y = -1; y <= 1; y++) {
+        for (let z = 1; z >= -1; z--) {
+          for (let x = -1; x <= 1; x++) {
+            targets.push({ x: x * gap, y: y * gap, z: z * gap });
+          }
+        }
+      }
+
+      const children = cubeRoot.children.slice();
+
+      // If counts don't match, fallback to snapping all cubies to nearest grid
+      if (children.length !== targets.length) {
+        children.forEach(c => snapCubie(c));
+        animating = false;
+        resolve();
+        return;
+      }
+
+      // For each target position (ordered), find the cubelet that has that homePos.
+      const used = new Set();
+      const assignments = [];
+      targets.forEach((t, i) => {
+        // find cubelet whose userData.homePos matches t
+        let found = null;
+        for (let j = 0; j < children.length; j++) {
+          if (used.has(j)) continue;
+          const c = children[j];
+          const hp = (c && c.userData && c.userData.homePos) ? c.userData.homePos : null;
+          if (hp && Math.abs(hp.x - t.x) < 0.0001 && Math.abs(hp.y - t.y) < 0.0001 && Math.abs(hp.z - t.z) < 0.0001) {
+            found = { cubelet: c, index: j };
+            break;
+          }
+        }
+
+        // fallback: pick first unused
+        if (!found) {
+          for (let j = 0; j < children.length; j++) {
+            if (!used.has(j)) { found = { cubelet: children[j], index: j }; break; }
+          }
+        }
+
+        if (found) {
+          used.add(found.index);
+          assignments.push({ cubelet: found.cubelet, target: t, order: i });
+        }
+      });
+
+      // Attempt GSAP animation
+      const useGsap = (typeof gsap !== 'undefined');
+      if (useGsap) {
+        assignments.forEach(a => {
+          try {
+            gsap.to(a.cubelet.position, { x: a.target.x, y: a.target.y, z: a.target.z, duration: duration, delay: a.order * stagger, ease: ease });
+            gsap.to(a.cubelet.rotation, { x: 0, y: 0, z: 0, duration: duration, delay: a.order * stagger, ease: ease });
+            gsap.to(a.cubelet.scale, { x: 1, y: 1, z: 1, duration: duration * 0.8, delay: a.order * stagger, ease: 'back.out(1.2)' });
+          } catch (e) {}
+        });
+      } else {
+        // Fallback for no GSAP: set positions immediately
+        assignments.forEach(a => {
+          try {
+            a.cubelet.position.set(a.target.x, a.target.y, a.target.z);
+            a.cubelet.rotation.set(0,0,0);
+            a.cubelet.scale.set(1,1,1);
+          } catch (e) {}
+        });
+      }
+
+      // Resolve after last animation is expected to complete
+      const totalTime = useGsap ? (duration * 1000 + (children.length - 1) * stagger * 1000 + 50) : 100;
+      setTimeout(() => {
+        // final snap to avoid floating rounding errors
+        children.forEach(c => snapCubie(c));
+        // Restore any saved text scales
+        try {
+          if (window._savedTextScales) {
+            children.forEach(cubelet => {
+              cubelet.children.forEach(child => {
+                if (child.userData && child.userData.baseScale && window._savedTextScales[child.uuid]) {
+                  const s = window._savedTextScales[child.uuid];
+                  try { child.scale.set(s.x, s.y, s.z); } catch (e) {}
+                }
+              });
+            });
+          }
+        } catch (e) {}
+        animating = false;
+        resolve();
+      }, totalTime);
+      setTimeout(() => {
+        gsap.to(world.position, { x: 0, y: 0, z: 0, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+        gsap.to(world.scale, { x: 1, y: 1, z: 1, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+        gsap.to(world.rotation, { x: 0, y: 0, z: 0, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+      }, 200);
+    } catch (e) {
+      console.error('recomposeCubeOrdered error', e);
+      try { cubeRoot.children.forEach(c => snapCubie(c)); } catch (ee) {}
+      animating = false;
+      resolve();
+    }
+  });
+}
+
+function disposeMeshResources(obj) {
+  try {
+    if (!obj) return;
+    if (obj.geometry && obj.geometry.dispose) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach(m => {
+          if (m && m.map && m.map.dispose) m.map.dispose();
+          if (m && m.dispose) m.dispose();
+        });
+      } else {
+        if (obj.material.map && obj.material.map.dispose) obj.material.map.dispose();
+        if (obj.material.dispose) obj.material.dispose();
+      }
+    }
+    if (obj.userData) {
+      if (obj.userData.normalTexture && obj.userData.normalTexture.dispose) obj.userData.normalTexture.dispose();
+      if (obj.userData.flippedTexture && obj.userData.flippedTexture.dispose) obj.userData.flippedTexture.dispose();
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+function safeRemoveCubeChildren() {
+  try {
+    while (cubeRoot.children.length) {
+      const child = cubeRoot.children[0];
+      try { if (typeof gsap !== 'undefined' && gsap.killTweensOf) gsap.killTweensOf(child); } catch (e) {}
+      // dispose recursively
+      if (child.traverse) {
+        child.traverse(c => disposeMeshResources(c));
+      } else {
+        disposeMeshResources(child);
+      }
+      cubeRoot.remove(child);
+    }
+  } catch (e) {}
+}
+
+function safelyRebuildCube() {
+  try {
+    if (typeof gsap !== 'undefined' && gsap.killTweensOf) {
+      try { gsap.killTweensOf(world); } catch (e) {}
+      try { gsap.killTweensOf(cubeRoot); } catch (e) {}
+    }
+    safeRemoveCubeChildren();
+    // rebuild
+    buildRubikCube();
+    window._pendingThemeChange = false;
+  } catch (e) {
+    console.error('safelyRebuildCube error', e);
+  }
+}
 
 //Mobile
 let touchStartX = 0;
@@ -27,7 +289,7 @@ const COLORS = {
   F: 0xFFC107, 
   B: 0xFF0000, 
   BODY: 0x0b0f18, 
-  EDGE: 0x00000000   
+  EDGE: 0x282828   
 };
 
 let phaseContents = {};
@@ -134,14 +396,12 @@ function init() {
               }
             }
 
-            if (typeof animating !== 'undefined' && animating) {
-              // mark pending change and let a poller apply it when animation ends
-              window._pendingThemeChange = true;
-            } else if (typeof queue !== 'undefined' && queue.length > 0) {
+            // If the cube is currently busy (scrambling/animating/tweens), defer the heavy rebuild
+            if (window.cubeIsBusy && window.cubeIsBusy()) {
               window._pendingThemeChange = true;
             } else {
               applyThemeColors(newTheme);
-              buildRubikCube();
+              try { safelyRebuildCube(); } catch(e) { console.error('Error rebuilding cube after theme change:', e); }
             }
           }
         }
@@ -151,7 +411,7 @@ function init() {
     // Poller: if a theme change was deferred while animating/scrambling, apply it once animations finish
     try {
       setInterval(() => {
-        if (window._pendingThemeChange && !animating && (!queue || queue.length === 0)) {
+        if (window._pendingThemeChange && !(window.cubeIsBusy && window.cubeIsBusy())) {
           const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
           if (currentTheme === 'light') {
             COLORS.BODY = 0x0b0f18;
@@ -160,7 +420,7 @@ function init() {
             COLORS.BODY = 0x0b0f18;
             COLORS.EDGE = 0x263046;
           }
-          try { buildRubikCube(); } catch(e) { console.error('Error rebuilding cube for pending theme:', e); }
+          try { safelyRebuildCube(); } catch(e) { console.error('Error rebuilding cube for pending theme:', e); }
           window._pendingThemeChange = false;
         }
       }, 250);
@@ -438,7 +698,8 @@ function addStickers(mesh, x, y, z) {
 
 // Costruisce il cubo di Rubik
 function buildRubikCube() {
-  while (cubeRoot.children.length) cubeRoot.remove(cubeRoot.children[0]);
+  // Pulizia sicura dei figli precedenti per evitare che tween rimangano attaccati a oggetti eliminati
+  safeRemoveCubeChildren();
   cubelets.length = 0;
 
   const bodyGeom = createRoundedBox(cubieSize, cubieSize, cubieSize, 0.08, 3);
@@ -456,8 +717,10 @@ function buildRubikCube() {
         ));
         
         addStickers(body, x, y, z);
+        // Save the intended "home" position so we can reconstruct pieces later
+        body.userData.homePos = { x: x * gap, y: y * gap, z: z * gap };
         cubeRoot.add(body);
-        cubelets.push({ mesh: body });
+        cubelets.push({ mesh: body, homePos: body.userData.homePos });
       }
     }
   }
@@ -1170,53 +1433,96 @@ function showPhaseCard(faceIndex) {
   const phase = phaseContents[phaseName];
 
   if (phase) {
+    // Save current text scales so we can restore them exactly when closing the card
+    try {
+      window._savedTextScales = window._savedTextScales || {};
+      cubeRoot.children.forEach(cubelet => {
+        cubelet.children.forEach(child => {
+          if (child.userData && child.userData.baseScale && child.geometry && child.geometry.type === 'PlaneGeometry') {
+            window._savedTextScales[child.uuid] = { x: child.scale.x, y: child.scale.y, z: child.scale.z };
+          }
+        });
+      });
+    } catch (e) { /* ignore */ }
     // Imposta header
     header.textContent = phase.title;
-    header.style.color = phase.color;
-    // Imposta background for the card using a soft gradient derived from the phase color
-    try {
-      const cardEl = card;
-      // Force the inline background with !important so it dominates stylesheet overrides
-      cardEl.style.setProperty('background', `linear-gradient(135deg, ${phase.color}33, ${phase.color}11)`, 'important');
-
-      // Contrast: choose readable text color for content based on phase color luminance
-      function hexToRgb(hex) {
-        const h = hex.replace('#','');
-        return { r: parseInt(h.substring(0,2),16), g: parseInt(h.substring(2,4),16), b: parseInt(h.substring(4,6),16) };
-      }
-      function luminance(r,g,b){
-        const a = [r,g,b].map(v => {
-          v /= 255;
-          return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
-        });
-        return 0.2126*a[0] + 0.7152*a[1] + 0.0722*a[2];
-      }
-      const rgb = hexToRgb(phase.color || '#000000');
-      const lum = luminance(rgb.r, rgb.g, rgb.b);
-      const textContrast = lum > 0.5 ? '#111111' : '#FFFFFF';
-      content.style.color = textContrast;
-      cardEl.style.color = textContrast;
-      if (header) header.style.color = phase.color;
-      // Ensure close button contrasts
-      const closeBtn = document.querySelector('.phase-card-close');
-      if (closeBtn) closeBtn.style.color = textContrast;
-    } catch(e) {
-      // ignore style errors
-    }
-    
+    header.style.color = phase.color;    
     // Imposta contenuto (già con immagini e HTML da WordPress)
     content.innerHTML = phase.content;
     
     // Scroll automatico in alto
     content.scrollTop = 0;
 
+    // Variabile per fare un movimento responsive per telefono pc e schermo grande
+    const isMobile = window.innerWidth <= 768;
+    const isLargeScreen = window.innerWidth >= 1440;
+    let targetX = 0;
+    let targetY  = 0;
+
+    if (isMobile) {
+      // Sposta sopra e centra orizzontalmente
+      targetX = 0;
+      targetY = 4;
+      // Ridimensiona il cubo per schermi piccoli
+      gsap.to(world.scale, {
+        x: 0.35,
+        y: 0.35,
+        z: 0.35,
+        duration: 0.8,
+        ease: "power2.inOut"
+      });
+    }
+    else if (isLargeScreen) {
+      // Sposta a sinistra: calcolo responsive basato sulla larghezza finestra
+      // Mappa la width [1441, 3820] -> [6, 7.5] e applica segno negativo
+      const width = window.innerWidth;
+      const minW = 1441;
+      const maxW = 3820;
+      const minX = 6;    // valore desiderato a width = minW
+      const maxX = 7.5;  // valore desiderato a width = maxW
+
+      // clamp width nell'intervallo e mappa linearmente
+      const clamped = Math.min(Math.max(width, minW), maxW);
+      const t = (clamped - minW) / (maxW - minW);
+      const mapped = minX + t * (maxX - minX);
+
+      targetX = -mapped;
+      targetY = -1.5;
+    }
+    else {
+      // Sposta a sinistra: calcolo responsive basato sulla larghezza finestra
+      // Mappa la width [1441, 3820] -> [6, 7.5] e applica segno negativo
+      const width = window.innerWidth;
+      const minW = 769;
+      const maxW = 1439;
+      const minX = 5.5;  // valore desiderato a width = minW
+      const maxX = 5.5;  // valore desiderato a width = maxW
+
+      // clamp width nell'intervallo e mappa linearmente
+      const clamped = Math.min(Math.max(width, minW), maxW);
+      const t = (clamped - minW) / (maxW - minW);
+      const mapped = minX + t * (maxX - minX);
+
+      targetX = -mapped;
+      targetY = -1.5;
+
+      // Ridimensiona il cubo per schermi
+      gsap.to(world.scale, {
+        x: 0.7,
+        y: 0.7,
+        z: 0.7,
+        duration: 0.8,
+        ease: "power2.inOut"
+      });
+    }
+
     setTimeout(() => {
       card.classList.add('active');
       // Dopo che la card è attiva, centra il cubo nella zona rimasta visibile
       setTimeout(() => {
         gsap.to(world.position, {
-          x: -8.5,
-          y: -2,
+          x: targetX,
+          y: targetY,
           duration: 0.8,
           ease: "power2.inOut"
         });
@@ -1233,15 +1539,56 @@ function closePhaseCard() {
   card.classList.remove('active');
 
   if (world) {
-    gsap.to(world.position, {
-      x: 0,
-      y: 0,
-      duration: 0.8,
-      ease: "power2.inOut"
-    });
+    stopIdleCubeAnimation(); // Ferma idle se attiva
+    stopAutoRotate(); // Ferma auto rotate se attiva
+    // Abort any running animations
+    try { safeAbortAnimations(); } catch (e) {}
+    animating = false;
+
+    // FIRST: move cube back to center and reset rotation IMMEDIATELY (before any recompose animation)
+    try {
+      if (typeof gsap !== 'undefined') {
+        gsap.killTweensOf(world.position);
+        gsap.killTweensOf(world.scale);
+        gsap.killTweensOf(world.rotation);
+        // Poi lancia comunque l'animazione per smooth (ma parte già dal centro)
+        gsap.to(world.position, { x: 0, y: 0, z: 0, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+        gsap.to(world.scale, { x: 1, y: 1, z: 1, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+        gsap.to(world.rotation, { x: 0, y: 0, z: 0, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+      } else {
+        world.position.set(0,0,0);
+        world.scale.set(1,1,1);
+        world.rotation.set(0,0,0);
+      }
+    } catch (e) {}
+
+    // Wait a bit for the cube to start moving to center, then check if solved and run appropriate recompose
+    setTimeout(() => {
+      const solved = isCubeSolved();
+
+      if (solved) {
+        // Cube is solved → run explode+recompose
+        try {
+          recomposeExplodeAndCompose({ explodeFactor: 3.5, durationOut: 0.6, durationIn: 0.12, stagger: 0.04 }).catch(() => {
+            try { cubeRoot.children.forEach(c => snapCubie(c)); } catch (ee) {}
+          });
+        } catch (e) {
+          try { cubeRoot.children.forEach(c => snapCubie(c)); } catch (ee) {}
+        }
+      } else {
+        // Cube is NOT solved → run ordered recompose
+        try {
+          recomposeCubeOrdered({ duration: 0.9, stagger: 0.03 }).catch(() => {
+            try { cubeRoot.children.forEach(c => snapCubie(c)); } catch (ee) {}
+          });
+        } catch (e) {
+          try { cubeRoot.children.forEach(c => snapCubie(c)); } catch (ee) {}
+        }
+      }
+    }, 100);
   }
   
-  // Resetta lo stato di animating per permettere nuovi click
+  // Reset animating flag
   animating = false;
   
   // Riavvia il timer di inattività
@@ -1250,21 +1597,97 @@ function closePhaseCard() {
 
 // Starta l'animazione di movimento automatico
 function startAutoRotate() {
-  if (!isOpening && world) {
-    autoRotateAnimation = gsap.to(world.rotation, {
-      y: "+=6.28319",
-      duration: 20,
-      ease: "none",
-      repeat: -1
-    });
+  if (idleCubeAnimation) { console.log('[IDLE] già attiva'); return; }
+  if (!world) {
+    console.warn('[IDLE] world non pronto, ritento tra 300ms');
+    setTimeout(startIdleCubeAnimation, 300);
+    return;
+  }
+  console.log('[IDLE] Avvio idle animazione!');
+  if (typeof gsap !== 'undefined') {
+      // Rotazione Y infinita, mai resettata
+      gsap.to(world.rotation, {
+        y: "+=6.28319",
+        duration: 32,
+        ease: "none",
+        repeat: -1
+      });
+      idleCubeAnimation = gsap.timeline({ repeat: -1, yoyo: true });
+      // Sequenza originale
+      idleCubeAnimation
+        .to(world.rotation, { y: "+=0.7", x: "+=0.15", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "+=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 1.08, y: 0.92, z: 1.08, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=0.7", x: "-=0.15", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=0.7", x: "+=0.30", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "+=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 1.08, y: 0.92, z: 1.08, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=0.7", x: "-=0.30", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.1", x: "+=0.22", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "+=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 1.08, y: 0.92, z: 1.08, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.1", x: "-=0.22", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.1", x: "+=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "+=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 1.08, y: 0.92, z: 1.08, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.1", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.5", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.6", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.7", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.8", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=1.9", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=2.0", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=2.3", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=2.4", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=2.5", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+        .to(world.rotation, { y: "+=2.6", x: "-=0.44", duration: 1.2, ease: "sine.inOut" })
+        .to(world.position, { y: "-=0.25", duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, "<")
+        .to(world.scale, { x: 0.92, y: 1.08, z: 0.92, duration: 0.4, yoyo: true, repeat: 1, ease: "back.inOut(2)" }, "<+0.2")
+  } else {
+    console.warn('[IDLE] GSAP non disponibile, idle non parte');
   }
 }
 
 // Ferma l'animazione di movimento automatico
 function stopAutoRotate() {
-  if (autoRotateAnimation) {
-    autoRotateAnimation.kill();
-    autoRotateAnimation = null;
+  if (typeof gsap !== 'undefined' && world) {
+    // Ferma tutte le animazioni su world.rotation e world.position
+    gsap.killTweensOf(world.rotation);
+    gsap.killTweensOf(world.position);
+    gsap.killTweensOf(world.scale);
+  }
+  if (idleCubeAnimation) {
+    try { idleCubeAnimation.kill(); } catch (e) {}
+    idleCubeAnimation = null;
+    if (world && typeof gsap !== 'undefined') {
+      gsap.to(world.scale, { x: 1, y: 1, z: 1, duration: 0.3, overwrite: true });
+    }
   }
 }
 
@@ -1333,8 +1756,28 @@ function snapCubie(m) {
   m.rotation.z = Math.round(m.rotation.z / q) * q;
 }
 
+// Check if the cube is fully solved (every cubie is at its home position)
+function isCubeSolved() {
+  try {
+    const children = cubeRoot.children;
+    for (let i = 0; i < children.length; i++) {
+      const c = children[i];
+      const hp = (c && c.userData && c.userData.homePos) ? c.userData.homePos : null;
+      if (!hp) return false; // if no homePos, assume not solved
+      const epsilon = 0.01;
+      if (Math.abs(c.position.x - hp.x) > epsilon || Math.abs(c.position.y - hp.y) > epsilon || Math.abs(c.position.z - hp.z) > epsilon) {
+        return false;
+      }
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function applyMove(token, duration) {
   return new Promise(resolve => {
+    const currentAnimationToken = window._animationToken || 0;
     const { axis, layer, angle } = moveSpec(token);
     const parts = selectLayer(axis, layer);
     const g = new THREE.Group();
@@ -1346,6 +1789,21 @@ function applyMove(token, duration) {
     const baseRot = g.rotation.clone();
 
     (function anim(now) {
+      // If animation was invalidated externally, abort gracefully
+      if ((window._animationToken || 0) !== currentAnimationToken) {
+        try {
+          // reattach children and snap
+          while (g.children.length) {
+            const m = g.children[0];
+            cubeRoot.attach(m);
+            snapCubie(m);
+          }
+          cubeRoot.remove(g);
+        } catch (e) {}
+        resolve();
+        return;
+      }
+
       const t = Math.min(1, (now - start) / duration);
       const e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
       g.rotation.copy(baseRot);
@@ -1365,9 +1823,20 @@ function applyMove(token, duration) {
 }
 
 async function runQueue() {
+  const myToken = window._animationToken || 0;
   while (queue.length) {
+    // If token changed, stop processing immediately
+    if ((window._animationToken || 0) !== myToken) {
+      try { queue.length = 0; } catch (e) {}
+      break;
+    }
     const mv = queue.shift();
     await applyMove(mv, 120);
+    // After each move, check token again to break promptly
+    if ((window._animationToken || 0) !== myToken) {
+      try { queue.length = 0; } catch (e) {}
+      break;
+    }
   }
 }
 
@@ -1452,6 +1921,167 @@ async function startAutoAnimation() {
   
   animating = false;
   console.log("Animazione completata");
+  // Se la phase-card è ancora aperta, avvia idle animazione
+  startIdleCubeAnimation();
+}
+
+// Explode the cubelets outward then recompose them into their home positions
+function recomposeExplodeAndCompose(opts = {}) {
+  // New layered, one-by-one compose with improved explosion
+  const explodeFactor = typeof opts.explodeFactor === 'number' ? opts.explodeFactor : 3.0;
+  const durationOut = typeof opts.durationOut === 'number' ? opts.durationOut : 0.55;
+  // SPEED UP: reduce durationIn and baseDelay for faster recompose
+  const durationIn = typeof opts.durationIn === 'number' ? opts.durationIn : 0.18;
+  const baseDelay = typeof opts.baseDelay === 'number' ? opts.baseDelay : 0.005; // delay between pieces in sequence
+  const easeOut = opts.easeOut || 'power4.out';
+  const easeIn = opts.easeIn || 'power2.inOut';
+
+  stopIdleCubeAnimation(); // Ferma idle se parte questa animazione
+  return new Promise(resolve => {
+    try {
+      // Invalidate other animations and clear queue
+      window._animationToken = (window._animationToken || 0) + 1;
+      try { queue.length = 0; } catch (e) {}
+
+      // Kill existing tweens
+      try {
+        if (typeof gsap !== 'undefined') {
+          try { gsap.killTweensOf(world); } catch (e) {}
+          try { gsap.killTweensOf(cubeRoot); } catch (e) {}
+          cubeRoot.children.forEach(c => { try { gsap.killTweensOf(c); } catch (e) {} });
+        }
+      } catch (e) {}
+
+      const children = cubeRoot.children.slice();
+      if (!children.length) { resolve(); return; }
+
+      const useGsap = (typeof gsap !== 'undefined');
+
+      // Build mapping: For each child, save home position
+      const pieces = children.map(c => ({
+        mesh: c,
+        home: (c.userData && c.userData.homePos) ? new THREE.Vector3(c.userData.homePos.x, c.userData.homePos.y, c.userData.homePos.z) : c.position.clone()
+      }));
+
+      // Explosion targets (random, larger radius + random rotation) for dramatic effect
+      pieces.forEach(p => {
+        const randA = Math.random() * Math.PI * 2;
+        const randE = (Math.random() - 0.5) * (Math.PI * 0.9);
+        const radius = explodeFactor * gap * (2.2 + Math.random() * 0.8);
+        p.outPos = new THREE.Vector3(
+          Math.cos(randA) * Math.cos(randE) * radius,
+          Math.sin(randE) * radius,
+          Math.sin(randA) * Math.cos(randE) * radius
+        );
+        p.outRot = new THREE.Euler(
+          (Math.random() - 0.5) * Math.PI * 2,
+          (Math.random() - 0.5) * Math.PI * 2,
+          (Math.random() - 0.5) * Math.PI * 2
+        );
+      });
+
+      // Phase 1: explode all out
+      if (useGsap) {
+        pieces.forEach((p, i) => {
+          try {
+            gsap.to(p.mesh.position, { x: p.outPos.x, y: p.outPos.y, z: p.outPos.z, duration: durationOut, delay: 0.0, ease: easeOut });
+            gsap.to(p.mesh.rotation, { x: p.outRot.x, y: p.outRot.y, z: p.outRot.z, duration: durationOut, delay: 0.0, ease: easeOut });
+            gsap.to(p.mesh.scale, { x: 0.65, y: 0.65, z: 0.65, duration: durationOut, delay: 0.0, ease: 'power2.out' });
+          } catch (e) {}
+        });
+      } else {
+        pieces.forEach(p => {
+          try { p.mesh.position.copy(p.outPos); p.mesh.rotation.copy(p.outRot); p.mesh.scale.set(0.65,0.65,0.65); } catch (e) {}
+        });
+      }
+
+      // Helper to find cubelet at specific home grid coordinate
+      function findByHome(x, y, z) {
+        for (let i = 0; i < pieces.length; i++) {
+          const h = pieces[i].home;
+          if (Math.abs(h.x - x) < 0.001 && Math.abs(h.y - y) < 0.001 && Math.abs(h.z - z) < 0.001) return pieces[i];
+        }
+        return null;
+      }
+
+      // Build layered order:
+      // A (bottom y=-1): forward -> z 1..-1, x -1..1
+      // B (middle y=0): reverse of forward
+      // C (top y=+1): forward again
+      function buildLayerOrder(yLayer, forward=true) {
+        const order = [];
+        const zList = forward ? [1, 0, -1] : [-1, 0, 1];
+        const xList = forward ? [-1, 0, 1] : [1, 0, -1];
+        zList.forEach(z => {
+          xList.forEach(x => {
+            const p = findByHome(x * gap, yLayer * gap, z * gap);
+            if (p) order.push(p);
+          });
+        });
+        return order;
+      }
+
+      const A = buildLayerOrder(-1, true);
+      const B = buildLayerOrder(0, true).reverse();
+      const C = buildLayerOrder(1, true);
+      const sequence = [...A, ...B, ...C];
+
+      const startComposeAt = (durationOut * 1000) + 50; // after explosion completes
+
+      // Sequential compose: one cube at a time
+      const doCompose = async () => {
+        for (let i = 0; i < sequence.length; i++) {
+          const p = sequence[i];
+          if (useGsap) {
+            await new Promise(res => {
+              try {
+                const tl = gsap.timeline({ onComplete: res });
+                tl.to(p.mesh.position, { x: p.home.x, y: p.home.y, z: p.home.z, duration: durationIn, ease: easeIn }, 0)
+                  .to(p.mesh.rotation, { x: 0, y: 0, z: 0, duration: durationIn, ease: easeIn }, 0)
+                  .to(p.mesh.scale, { x: 1, y: 1, z: 1, duration: durationIn * 0.9, ease: 'back.out(1.4)' }, 0);
+              } catch (e) { res(); }
+            });
+          } else {
+            try { p.mesh.position.copy(p.home); p.mesh.rotation.set(0,0,0); p.mesh.scale.set(1,1,1); } catch (e) {}
+            await new Promise(res => setTimeout(res, durationIn * 1000));
+          }
+        }
+      };
+
+      setTimeout(async () => {
+        await doCompose();
+        try { pieces.forEach(p => snapCubie(p.mesh)); } catch (e) {}
+        // Restore saved text scales if present
+        try {
+          if (window._savedTextScales) {
+            pieces.forEach(p => {
+              try {
+                p.mesh.children.forEach(child => {
+                  if (child.userData && child.userData.baseScale && window._savedTextScales[child.uuid]) {
+                    const s = window._savedTextScales[child.uuid];
+                    try { child.scale.set(s.x, s.y, s.z); } catch (e) {}
+                  }
+                });
+              } catch (e) {}
+            });
+          }
+        } catch (e) {}
+        animating = false;
+        resolve();
+      }, startComposeAt);
+
+      setTimeout(() => {
+        gsap.to(world.position, { x: 0, y: 0, z: 0, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+        gsap.to(world.scale, { x: 1, y: 1, z: 1, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+        gsap.to(world.rotation, { x: 0, y: 0, z: 0, duration: 0.6, ease: 'power2.inOut', overwrite: true });
+      }, 200);
+    } catch (e) {
+      console.error('recomposeExplodeAndCompose error', e);
+      try { cubeRoot.children.forEach(c => snapCubie(c)); } catch (ee) {}
+      animating = false;
+      resolve();
+    }
+  });
 }
 
 // ========================================================================================
@@ -1566,11 +2196,15 @@ async function startAssemblyAnimation() {
 
 // Funzione per eseguire scramble e solve senza resettare il cubo
 async function startScrambleAndSolve() {
+  // Invalidate and create a local token so this run can be cancelled if closePhaseCard() is called
+  window._animationToken = (window._animationToken || 0) + 1;
+  const myToken = window._animationToken;
+
   if (animating) {
     console.log("Animazione già in corso, saltata");
     return;
   }
-  
+
   animating = true;
   console.log("Inizio scramble e solve...");
   
@@ -1592,16 +2226,27 @@ async function startScrambleAndSolve() {
   
   // Aspetta che entrambi finiscano
   await Promise.all([scramblePromise, textAnimationPromise]);
+
+  // If the token changed while waiting, abort early
+  if ((window._animationToken || 0) !== myToken) {
+    console.log('startScrambleAndSolve cancelled mid-run');
+    animating = false;
+    return;
+  }
   
   console.log("Scramble completato");
-  
-  // Attendi 0.3 secondi
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   // Genera e esegui solve
   const solve = inverseMoves(lastScramble);
   console.log("Solve:", solve.join(" "));
-  
+
+  // Before starting solve, check again for cancellation
+  if ((window._animationToken || 0) !== myToken) {
+    console.log('startScrambleAndSolve aborting before solve');
+    animating = false;
+    return;
+  }
+
   pushMoves(solve);
   await runQueue();
   
@@ -1613,6 +2258,14 @@ async function startScrambleAndSolve() {
   
   animating = false;
   console.log("Animazione completata - cubo pronto per nuovi click");
+  // Avvia idle animazione se la phase-card è ancora aperta
+  const card = document.getElementById('phase-card');
+  if (card && card.classList.contains('active')) {
+    console.log('[IDLE] Chiamo startIdleCubeAnimation da startScrambleAndSolve');
+    startIdleCubeAnimation();
+  } else {
+    console.log('[IDLE] phase-card non attiva, idle non parte');
+  }
 }
 
 function scaleAllTexts(scale) {
@@ -1627,6 +2280,7 @@ function scaleAllTexts(scale) {
 }
 
 function animateTextsToSmall() {
+  stopIdleCubeAnimation(); // Ferma idle se parte questa animazione
   return new Promise(resolve => {
     cubeRoot.children.forEach(cubelet => {
       cubelet.children.forEach(child => {
@@ -1698,6 +2352,16 @@ function updateTextOrientation() {
 
 // Event listener per il pulsante
 document.addEventListener('DOMContentLoaded', () => {
+  // Ensure close button works reliably on touch devices as well
+  try {
+    const closeBtn = document.querySelector('.phase-card-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('touchend', function(e) {
+        try { e.preventDefault(); } catch (err) {}
+        try { closePhaseCard(); } catch (err) {}
+      }, { passive: false });
+    }
+  } catch (e) {}
   // const resetBtn = document.getElementById('reset-animation-btn');
   // if (resetBtn) {
   //   resetBtn.addEventListener('click', () => {
@@ -1716,6 +2380,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrWrapper = document.createElement('div');
   qrWrapper.id = 'qr-code-wrapper';
   document.body.appendChild(qrWrapper);
+
+  // Imposta la variabile CSS --mobile-footer-height dinamicamente in base
+  // all'altezza reale del footer (utile su dispositivi dove la footer cambia)
+  function updateMobileFooterHeightVar(){
+    try{
+      const footerEl = document.querySelector('footer');
+      const val = (footerEl && footerEl.offsetHeight) ? footerEl.offsetHeight : 55;
+      document.documentElement.style.setProperty('--mobile-footer-height', val + 'px');
+    }catch(e){
+      document.documentElement.style.setProperty('--mobile-footer-height', '55px');
+    }
+  }
+  updateMobileFooterHeightVar();
+  window.addEventListener('resize', updateMobileFooterHeightVar);
 
   // Bottone con immagine (quadrato, bordo arrotondato 20px)
   const qrCodeBtn = document.createElement('button');
