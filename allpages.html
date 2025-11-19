@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sintesi Progetto Impacto.net - ITS Alto Adriatico</title>
+</head>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sintesi Progetto Impacto.net - ITS Alto Adriatico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<style>
+    :root {
+        --primary: #0f172a;      
+        --secondary: #334155;    
+        --bg-page: #f8fafc;     
+        --bg-card: #ffffff;
+        --border: #e2e8f0;
+        --text-body: #475569;
+        
+        
+        --col-u: #00B5D8; /* Ciano - Empatia */
+        --col-l: #E91E63; /* Rosa - Definizione */
+        --col-f: #FFC107; /* Giallo - Ideazione */
+        --col-r: #FF6D00; /* Arancione - Prototipazione */
+        --col-d: #9C27B0; /* Viola - Test */
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-page);
+        color: var(--text-body);
+        line-height: 1.6;
+        font-size: 16px;
+    }
+
+    /* Layout & Container */
+    .container {
+        max-width: 1024px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        padding: 48px 0;
+        margin-bottom: 48px;
+    }
+
+    header h1 {
+        font-size: 2rem;
+        color: var(--primary);
+        font-weight: 700;
+        margin-bottom: 8px;
+        letter-spacing: -0.02em;
+    }
+
+    header p {
+        font-size: 1rem;
+        color: var(--secondary);
+        font-weight: 500;
+    }
+
+    header small {
+        display: inline-block;
+        margin-top: 12px;
+        font-size: 0.875rem;
+        color: var(--secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #f1f5f9;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    
+    .phase:nth-of-type(1) { --theme-col: var(--col-u); --theme-bg: rgba(0, 181, 216, 0.08); }
+    
+    .phase:nth-of-type(2) { --theme-col: var(--col-l); --theme-bg: rgba(233, 30, 99, 0.08); }
+    
+    .phase:nth-of-type(3) { --theme-col: var(--col-f); --theme-bg: rgba(255, 193, 7, 0.12); }
+    
+    .phase:nth-of-type(4) { --theme-col: var(--col-r); --theme-bg: rgba(255, 109, 0, 0.08); }
+    
+    .phase:nth-of-type(5) { --theme-col: var(--col-d); --theme-bg: rgba(156, 39, 176, 0.08); }
+
+    .phase {
+        margin-bottom: 64px;
+        padding-bottom: 24px;
+        border-bottom: 1px dashed var(--border);
+    }
+
+    .phase:last-child {
+        border-bottom: none;
+    }
+
+    .phase h2 {
+        font-size: 1.5rem;
+        color: var(--primary);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .phase-number {
+        font-size: 0.875rem;
+        background: var(--theme-bg); /* Usa il colore dinamico */
+        color: var(--theme-col);     /* Usa il colore dinamico */
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 700;
+        border: 1px solid var(--theme-col);
+        min-width: 32px;
+        text-align: center;
+    }
+
+    h3 {
+        font-size: 1.125rem;
+        color: var(--secondary);
+        margin: 40px 0 20px 0;
+        font-weight: 600;
+        color: var(--theme-col); 
+    }
+
+    .challenge-box, .problem-statement {
+        background-color: var(--bg-card);
+        border-left: 4px solid var(--theme-col); /* Bordo colorato dinamico */
+        padding: 24px;
+        border-radius: 0 6px 6px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        margin-bottom: 32px;
+    }
+
+    .challenge-box strong, .problem-statement strong {
+        color: var(--theme-col); 
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .context-grid, 
+    .interview-grid, 
+    .personas-grid, 
+    .ideas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .context-card, 
+    .interview-card, 
+    .persona-card, 
+    .idea-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 24px;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Bordo superiore colorato sulla card */
+    .context-card::before, 
+    .interview-card::before, 
+    .persona-card::before, 
+    .idea-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: var(--theme-col);
+        opacity: 0.7;
+    }
+
+    .context-card:hover, 
+    .interview-card:hover, 
+    .persona-card:hover, 
+    .idea-card:hover {
+        border-color: var(--theme-col); /* Hover colorato */
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Typography interna alle card */
+    .context-card h3, 
+    .interview-card h4, 
+    .persona-card h4, 
+    .idea-card h5 {
+        color: var(--primary);
+        font-size: 1.1rem;
+        margin: 0 0 8px 0;
+        font-weight: 600;
+    }
+
+    /* Fix per h3 usati come titoli card */
+    .context-card h3 { 
+        margin-top: 0; 
+    }
+
+    .role, .tagline {
+        font-size: 0.875rem;
+        color: var(--theme-col); /* Ruolo colorato */
+        margin-bottom: 16px;
+        display: block;
+        font-weight: 600;
+    }
+
+    .quote {
+        font-style: italic;
+        font-size: 0.95rem;
+        color: #475569;
+        border-left: 3px solid #e2e8f0;
+        padding-left: 16px;
+        margin: 16px 0;
+    }
+
+    /* Liste */
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    ul li {
+        font-size: 0.95rem;
+        margin-bottom: 8px;
+        padding-left: 20px;
+        position: relative;
+        color: var(--text-body);
+    }
+
+    ul li::before {
+        content: "•";
+        color: var(--theme-col); 
+        position: absolute;
+        left: 0;
+        font-weight: bold;
+        font-size: 1.2rem;
+        line-height: 1rem;
+    }
+
+    footer {
+        margin-top: 80px;
+        padding: 40px 0;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        font-size: 0.875rem;
+        color: #94a3b8;
+    }
+
+    .highlight {
+        background: #fff1f2; 
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 500;
+        color: #e11d48;
+    }
+</style>
+<body>
+    <div class="container">
+        <header>
+            <h1>Impacto.net</h1>
+            <p>Sostenibilità Digitale nello Sviluppo Software</p>
+            <p><small>ITS Alto Adriatico × PAPION S.r.l.s</small></p>
+        </header>
+        
+        <div class="content">
+-            <section class="phase">
+                <h2><span class="phase-number">1</span> Fase Empatia</h2>
+                
+                <div class="challenge-box">
+                    <strong>Sfida Progettuale:</strong><br>
+                    Come possiamo aiutare sviluppatori e aziende a rendere i processi di sviluppo software meno energivori, trasformando l'innovazione responsabile in una parte naturale della cultura del coding e della produzione digitale?
+                </div>
+                
+                <h3 style="margin-top: 40px; color: #2c3e50;">Ricerche di Contesto</h3>
+                <div class="context-grid">
+                    <div class="context-card">
+                        <h3>Contesto Tecnologico</h3>
+                        <ul>
+                            <li>Sviluppo software = motore innovazione ma con costo energetico nascosto</li>
+                            <li>AI, cloud e data center amplificano il problema</li>
+                            <li>Trend emergenti: Green IT, ESG, NIS2</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="context-card">
+                        <h3>Contesto Aziendale</h3>
+                        <ul>
+                            <li>Focus su funzionalità, performance, valore cliente</li>
+                            <li>Sostenibilità vista come <span class="highlight">costo</span></li>
+                            <li>Mancano metriche oggettive</li>
+                            <li><strong>Opportunità:</strong> valutazione energetica come vantaggio competitivo</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="context-card">
+                        <h3>Contesto Formativo</h3>
+                        <ul>
+                            <li>Competenze tecniche in crescita</li>
+                            <li>Scarsa consapevolezza sulla sostenibilità</li>
+                            <li><strong>Gap:</strong> manca percorso strutturato per insegnare sostenibilità nel coding</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 40px; color: #2c3e50;">Interviste Realizzate </h3>
+                <div class="interview-grid">
+                    <div class="interview-card">
+                        <h4>Antonio Piva</h4>
+                        <p class="role">Presidente AICA Nazionale</p>
+                        <div class="quote">
+                            "Serve un'alleanza tra scuole, sviluppatori e aziende per rendere la sostenibilità parte naturale della cultura digitale"
+                        </div>
+                        <p><strong>Focus:</strong> Certificazioni, gap culturale, formazione responsabile</p>
+                    </div>
+                    
+                    <div class="interview-card">
+                        <h4>Tommaso Dri</h4>
+                        <p class="role">CTO Archeido Srl (AWS Partner)</p>
+                        <div class="quote">
+                            "La mentalità tradizionale vede la sostenibilità come costo. Servono strumenti per renderla misurabile"
+                        </div>
+                        <p><strong>Focus:</strong> Cloud computing, necessità di metriche chiare</p>
+                    </div>
+                    
+                    <div class="interview-card">
+                        <h4>Davide Serafini</h4>
+                        <p class="role">CoFounder Modic.Digital</p>
+                        <div class="quote">
+                            "Da soli non smuoviamo niente. Tutti insieme avremmo uno step in più di qualità"
+                        </div>
+                        <p><strong>Focus:</strong> SEO, UX, priorità GDPR e accessibilità</p>
+                    </div>
+                    
+                    <div class="interview-card">
+                        <h4>Alessandro Arciero</h4>
+                        <p class="role">Esperto Cybersecurity e Docente ITS</p>
+                        <div class="quote">
+                            "Un codice semplice, pulito e leggibile non è solo più sicuro, ma anche meno energivoro"
+                        </div>
+                        <p><strong>Focus:</strong> Sicurezza, efficienza, normative NIS2</p>
+                    </div>
+                    
+                    <div class="interview-card">
+                        <h4>Diego Betto</h4>
+                        <p class="role">Papion S.r.l.s. (Promotore sfida)</p>
+                        <div class="quote">
+                            "Il software non è solo codice: è energia che circola. Scrivere codice sostenibile significa scrivere futuro"
+                        </div>
+                        <p><strong>Focus:</strong> Consapevolezza energetica, margini di miglioramento</p>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 40px; color: #2c3e50;">Questionari Studenti</h3>
+                <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                    <p><strong>Sintesi:</strong> Per gli studenti, software sostenibile significa <span class="highlight">codice efficiente e duraturo</span> con impatto ambientale ridotto. Tuttavia <strong>molti non hanno ancora chiara la portata del concetto</strong>.</p>
+                </div>
+            </section>
+            
+            <section class="phase">
+                <h2><span class="phase-number">2</span> Fase Definizione</h2>
+                
+                <div class="problem-statement">
+                    <strong>Problem Statement:</strong><br><br>
+                    Sviluppatori e aziende hanno bisogno di un sistema che permetta di <strong>misurare e valutare il consumo energetico</strong> del processo di sviluppo software, perché senza strumenti concreti non possono integrare la sostenibilità in modo naturale nei processi di coding e innovazione digitale.
+                </div>
+            </section>
+            
+            <section class="phase">
+                <h2><span class="phase-number">3</span> Fase Ideazione</h2>
+                
+                <h3 style="color: #2c3e50;">User Personas</h3>
+                <div class="personas-grid">
+                    <div class="persona-card">
+                        <h4>Sasha</h4>
+                        <p class="tagline">Promuove cultura digitale responsabile</p>
+                        <p><strong>Profilo:</strong> Professionista senior ICT, formazione e promozione competenze digitali</p>
+                        <p><strong>Bisogno:</strong> Strumenti per misurare impatto energetico e integrare sostenibilità nei percorsi formativi</p>
+                        <p><strong>Obiettivo:</strong> Rendere sostenibilità visibile e quantificabile</p>
+                    </div>
+                    
+                    <div class="persona-card">
+                        <h4>Vale</h4>
+                        <p class="tagline">CTO/Co-Founder software house</p>
+                        <p><strong>Profilo:</strong> 30-40 anni, responsabile tecnico azienda digitale</p>
+                        <p><strong>Bisogno:</strong> Metriche chiare per dimostrare valore competitivo della sostenibilità ai clienti</p>
+                        <p><strong>Obiettivo:</strong> Differenziarsi nel mercato attraverso qualità tecnica</p>
+                    </div>
+                    
+                    <div class="persona-card">
+                        <h4>Andrea</h4>
+                        <p class="tagline">Studente curioso e consapevole</p>
+                        <p><strong>Profilo:</strong> 20 anni, passione per tecnologia e ambiente</p>
+                        <p><strong>Bisogno:</strong> Strumenti pratici per programmare in modo sostenibile</p>
+                        <p><strong>Obiettivo:</strong> Unire passione tecnologia e rispetto ambiente</p>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 40px; color: #2c3e50;">Idee Generate (Brainstorming)</h3>
+                
+                <h4 style="color: #667eea; margin-top: 30px;">Sessione 1 - Misurazione e Formazione</h4>
+                <div class="ideas-grid">
+                    <div class="idea-card">
+                        <h5>GreenMeter</h5>
+                        <p>Piattaforma online per stimare consumo energetico del codice con output visivo (etichetta A-E)</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>Certificazione "Green Code"</h5>
+                        <p>Percorso formativo + verifica tecnica con badge AICA per scuole e aziende</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>Toolkit educativo docenti</h5>
+                        <p>Materiali pratici, esempi codice efficiente, casi studio per insegnamento</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>Campagna gamification</h5>
+                        <p>"Il codice che pesa meno" con premi per codice più efficiente</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>Dashboard comparativa</h5>
+                        <p>Visualizza dati energetici e impatto ambientale progetti digitali</p>
+                    </div>
+                </div>
+                
+                <h4 style="color: #667eea; margin-top: 30px;">Sessione 2 - ROI e Competitività</h4>
+                <div class="ideas-grid">
+                    <div class="idea-card">
+                        <h5>Portfolio "Green Case"</h5>
+                        <p>Raccolta progetti con dati concreti su efficienza e riduzione consumi</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>Simulatore ROI sostenibile</h5>
+                        <p>Mostra ai clienti ritorno economico da efficienza software</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>Programma "Green Partner"</h5>
+                        <p>Network aziende con pratiche sostenibili e vantaggi reputazionali</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>KPI sostenibilità nei preventivi</h5>
+                        <p>Indicatori energetici accanto a costi e tempi sviluppo</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>Assistente AI integrato</h5>
+                        <p>Analizza codice in tempo reale e suggerisce ottimizzazioni energetiche</p>
+                    </div>
+                </div>
+                
+                <h4 style="color: #667eea; margin-top: 30px;">Sessione 3 - Gamification e Learning</h4>
+                <div class="ideas-grid">
+                    <div class="idea-card">
+                        <h5>EcoMentor AI</h5>
+                        <p>IA narrante che trasforma codice in storia ambientale</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>GreenQuest</h5>
+                        <p>Videogioco dove studenti "salvano pianeta digitale" con codice efficiente</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>Virtual Campus</h5>
+                        <p>Metaverso educativo per apprendere green coding esplorando mondi virtuali</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>CodeForChange Social</h5>
+                        <p>Social network per sviluppatori con eco-punteggio AI per progetti green</p>
+                    </div>
+                    <div class="idea-card">
+                        <h5>GreenCode Hour</h5>
+                        <p>Laboratorio guidato per ottimizzare programmi e ridurre consumo energetico</p>
+                    </div>
+                </div>
+            </section>
+      
+            <section class="phase">
+                <h2><span class="phase-number">4</span> Fase Prototipazione</h2>
+
+                <div class="challenge-box">
+                    <strong>Obiettivo della Prototipazione:</strong><br>
+                    Rendere tangibili le idee emerse nelle fasi precedenti e creare una
+                    prima versione funzionante della piattaforma GreenMeter,
+                    in grado di mostrare come la sostenibilità digitale possa diventare
+                    parte naturale del processo di sviluppo software.
+                </div>
+
+                <h3 style="margin-top: 40px; color: #2c3e50;"> Dalle idee ai prototipi</h3>
+                <p style="margin-bottom: 25px;">
+                    Nella fase di ideazione sono state generate numerose idee: assistenti AI,
+                    dashboard di misurazione, piattaforme educative e sistemi narrativi. La
+                    fase di prototipazione ha richiesto una selezione critica, portando alla
+                    realizzazione di <strong>tre prototipi principali</strong>, con livelli di dettaglio diversi,
+                    accomunati dall’obiettivo di rendere la sostenibilità <em>misurabile</em>,
+                    <em>comprensibile</em> e <em>integrabile</em> nei flussi di lavoro.
+                </p>
+
+                <div class="ideas-grid">
+                    <div class="idea-card">
+                        <h5>GreenOptimizer – Assistente AI</h5>
+                        <p>Strumento AI integrato negli IDE (Visual Studio Code, JetBrains) che
+                        analizza il codice durante la scrittura e suggerisce ottimizzazioni per
+                        ridurre consumi energetici.</p>
+
+                        <ul style="margin-top: 10px;">
+                            <li>Integrazione AI nei principali IDE</li>
+                            <li>Addestramento modelli su codice efficiente</li>
+                            <li>Creazione di un <strong>Green Impact Score</strong></li>
+                            <li>Suggerimenti in tempo reale</li>
+                            <li>Test del prototipo su progetti reali</li>
+                        </ul>
+
+                        <p><strong>Criticità:</strong> mancanza di metriche ufficiali, difficoltà tecniche di integrazione.</p>
+                    </div>
+
+                    <div class="idea-card">
+                        <h5>EcoMentor – L’IA che racconta l’ambiente</h5>
+                        <p>Un assistente narrativo che traduce i dati tecnici sull’impatto
+                        energetico in una storia ambientale comprensibile ed empatica, pensato
+                        per studenti e sviluppatori junior.</p>
+
+                        <ul style="margin-top: 10px;">
+                            <li>Traduzione parametri tecnici in storytelling ambientale</li>
+                            <li>Estensione IDE con voce o narrazione visiva</li>
+                            <li>Test in laboratori ITS e workshop formativi</li>
+                            <li>Misurazione impatto su apprendimento e consapevolezza</li>
+                        </ul>
+
+                        <p><strong>Criticità:</strong> difficoltà nel rendere la narrazione accurata e non banale.</p>
+                    </div>
+
+                    <div class="idea-card">
+                        <h5>GreenMeter – Piattaforma di Misurazione</h5>
+                        <p>Piattaforma web e mobile per analizzare il consumo energetico del
+                        codice software, con algoritmo dedicato, pannello UI, grafici e
+                        etichetta energetica A–E.</p>
+
+                        <ul style="margin-top: 10px;">
+                            <li>Ricerca e definizione metrica energetica (CPU, RAM, CO₂)</li>
+                            <li>UI/UX moderna con pannelli visivi</li>
+                            <li>Algoritmo di analisi e calcolo efficienza</li>
+                            <li>Primi test con studenti e aziende partner</li>
+                            <li>Documentazione e demo video</li>
+                        </ul>
+
+                        <p><strong>Criticità:</strong> complessità tecnica, assenza di standard ufficiali, costi di sviluppo.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 40px; color: #2c3e50;">Il Prototipo Principale: GreenMeter</h3>
+
+                <div class="context-card">
+                    <h3>Descrizione del prototipo</h3>
+
+                    <p>
+                        Il prototipo di <strong>GreenMeter</strong> è una piattaforma web e mobile che consente di
+                        analizzare in modo immediato il consumo energetico del codice software.
+                        L’interfaccia presenta:
+                    </p>
+
+                    <ul style="margin-top: 10px;">
+                        <li>Area per l’upload o l’inserimento diretto del codice</li>
+                        <li>Pannello visivo con <strong>etichetta energetica A–E</strong></li>
+                        <li>Indicatori misurati: <strong>CPU</strong>, <strong>RAM</strong>, <strong>CO₂</strong></li>
+                        <li>Punteggio complessivo di efficienza</li>
+                        <li>Suggerimenti AI per ottimizzare il codice</li>
+                        <li>Palette verde/blu per comunicare sostenibilità e tecnologia</li>
+                    </ul>
+
+                    <p style="margin-top: 15px;">
+                        <strong>Livello di fedeltà:</strong> 5/5 (alto)<br>
+                        <strong>Target:</strong> sviluppatori, docenti, studenti ITS, aziende digitali.
+                    </p>
+
+                    <p><strong>Link prototipo:</strong><br>
+                        <a href="https://v0-green-meter-prototype.vercel.app/" target="_blank">
+                            https://v0-green-meter-prototype.vercel.app/
+                        </a>
+                    </p>
+                </div>
+            </section>
+            <!-- FASE 5: TEST -->
+            <section class="phase">
+                <h2><span class="phase-number">5</span> Fase Test</h2>
+
+                <div class="challenge-box"">
+                    <strong>Obiettivo dei Test:</strong><br>
+                    Validare il funzionamento di GreenMeter con utenti reali, raccogliere
+                    feedback su metriche, usabilità, utilità pratica e possibilità di
+                    integrazione nei flussi di sviluppo.
+                </div>
+
+                <h3 style="margin-top: 40px; color: #2c3e50;">Chi ha partecipato?</h3>
+                <div class="context-grid">
+                    <div class="context-card">
+                        <h3>Sviluppatori professionisti</h3>
+                        <ul>
+                            <li>Analisi realistica dei flussi di coding</li>
+                            <li>Valutazione precisione delle metriche</li>
+                            <li>Feedback su plugin IDE</li>
+                        </ul>
+                    </div>
+
+                    <div class="context-card">
+                        <h3>Studenti ITS</h3>
+                        <ul>
+                            <li>Valutazione intuitività e comprensione visiva</li>
+                            <li>Interesse verso la sostenibilità digitale</li>
+                            <li>Correlazione con percorsi formativi</li>
+                        </ul>
+                    </div>
+
+                    <div class="context-card">
+                        <h3>Docenti ICT</h3>
+                        <ul>
+                            <li>Utilizzo didattico del tool</li>
+                            <li>Comprensibilità dei dati per studenti</li>
+                            <li>Potenziale di integrazione in lezioni e laboratori</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 40px; color: #2c3e50;">Risultati dei Test</h3>
+
+                <div class="context-card">
+                    <h3>Aspetti apprezzati</h3>
+                    <ul>
+                        <li>La misurazione immediata rende la sostenibilità concreta</li>
+                        <li>Indicatori CPU/RAM/CO₂ compresi facilmente grazie ai grafici</li>
+                        <li>Etichetta energetica A–E intuitiva e immediata</li>
+                        <li>Utile per dimostrare valore a clienti e aziende</li>
+                        <li>Potenziale uso come strumento formativo nelle scuole</li>
+                    </ul>
+                </div>
+
+                <div class="context-card">
+                    <h3>Suggerimenti degli utenti</h3>
+                    <ul>
+                        <li>Aumentare precisione e variabilità delle metriche</li>
+                        <li>Inserire versione plugin per VS Code e JetBrains</li>
+                        <li>Aggiungere suggerimenti più tecnici e meno generici</li>
+                        <li>Migliorare densità informazioni nella dashboard</li>
+                        <li>Permettere comparazione tra più file/progetti</li>
+                    </ul>
+                </div>
+
+                <h3 style="margin-top: 40px; color: #2c3e50;">Roadmap Evolutiva</h3>
+
+                <div class="ideas-grid">
+                    <div class="idea-card">
+                        <h5>Novembre 2025 – Validazione del prototipo</h5>
+                        <p>Sessioni test con studenti ITS, docenti e sviluppatori partner.
+                        Raccolta feedback su precisione metrica e UI.</p>
+                    </div>
+
+                    <div class="idea-card">
+                        <h5>Febbraio 2026 – Ottimizzazione</h5>
+                        <p>Miglioramento algoritmi CPU/RAM/CO₂,
+                        ottimizzazione interfaccia e suggerimenti AI.</p>
+                    </div>
+
+                    <div class="idea-card">
+                        <h5>Novembre 2026 – Integrazione nei principali IDE</h5>
+                        <p>Sviluppo estensioni per VS Code e JetBrains, test di stabilità e
+                        compatibilità con i flussi di sviluppo reali.</p>
+                    </div>
+
+                    <div class="idea-card">
+                        <h5>Gennaio 2027 – Versione Beta</h5>
+                        <p>Rilascio beta per comunità ITS e aziende partner, con video demo,
+                        guida introduttiva e pagina di presentazione.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>
